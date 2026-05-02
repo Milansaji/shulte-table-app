@@ -4,7 +4,12 @@ import '../../domain/entities/high_score.dart';
 
 /// Repository for managing high scores with local persistence
 class HighScoreRepository {
-  static const String _key = 'high_scores';
+  static const String _keyPrefix = 'high_scores_level_';
+
+  /// Get storage key for a specific level
+  static String _getKeyForLevel(int level) {
+    return '$_keyPrefix$level';
+  }
 
   /// Save a high score
   Future<void> saveHighScore(HighScore score) async {
@@ -21,13 +26,32 @@ class HighScoreRepository {
     }
 
     final jsonList = scores.map((score) => jsonEncode(score.toJson())).toList();
-    await prefs.setStringList(_key, jsonList);
+    // Save to level-specific key
+    await prefs.setStringList(_getKeyForLevel(score.level), jsonList);
   }
 
   /// Get all high scores sorted by time (best first)
   Future<List<HighScore>> getHighScores() async {
     final prefs = await SharedPreferences.getInstance();
-    final jsonList = prefs.getStringList(_key) ?? [];
+    final allScores = <HighScore>[];
+
+    // Get scores from all levels
+    for (int level = 1; level <= 3; level++) {
+      final jsonList = prefs.getStringList(_getKeyForLevel(level)) ?? [];
+      final levelScores = jsonList
+          .map((json) => HighScore.fromJson(jsonDecode(json)))
+          .toList();
+      allScores.addAll(levelScores);
+    }
+
+    allScores.sort((a, b) => a.time.compareTo(b.time));
+    return allScores;
+  }
+
+  /// Get high scores for a specific level
+  Future<List<HighScore>> getHighScoresForLevel(int level) async {
+    final prefs = await SharedPreferences.getInstance();
+    final jsonList = prefs.getStringList(_getKeyForLevel(level)) ?? [];
     
     return jsonList
         .map((json) => HighScore.fromJson(jsonDecode(json)))
@@ -44,6 +68,8 @@ class HighScoreRepository {
   /// Clear all high scores
   Future<void> clearHighScores() async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.remove(_key);
+    for (int level = 1; level <= 3; level++) {
+      await prefs.remove(_getKeyForLevel(level));
+    }
   }
 }

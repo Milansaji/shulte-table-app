@@ -18,15 +18,15 @@ class HighScoresWidget extends StatelessWidget {
       return Container(
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
-          color: isDarkMode ? const Color(0xFF1A1F2E) : Colors.white,
+          color: isDarkMode ? Colors.black : Colors.white,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: isDarkMode ? const Color(0xFF00D9FF) : Colors.black,
+            color: isDarkMode ? Colors.white : Colors.black,
             width: 2,
           ),
           boxShadow: [
             BoxShadow(
-              color: (isDarkMode ? const Color(0xFF00D9FF) : Colors.black).withValues(alpha: 0.1),
+              color: (isDarkMode ? Colors.white : Colors.black).withValues(alpha: 0.1),
               blurRadius: 8,
               offset: const Offset(0, 4),
             ),
@@ -37,7 +37,7 @@ class HighScoresWidget extends StatelessWidget {
             Icon(
               Icons.emoji_events_outlined,
               size: 40,
-              color: isDarkMode ? const Color(0xFF00D9FF) : Colors.black,
+              color: isDarkMode ? Colors.white : Colors.black,
             ),
             const SizedBox(height: 12),
             Text(
@@ -45,7 +45,7 @@ class HighScoresWidget extends StatelessWidget {
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
-                color: isDarkMode ? const Color(0xFF00D9FF) : Colors.black,
+                color: isDarkMode ? Colors.white : Colors.black,
               ),
             ),
             const SizedBox(height: 12),
@@ -64,15 +64,15 @@ class HighScoresWidget extends StatelessWidget {
 
     return Container(
       decoration: BoxDecoration(
-        color: isDarkMode ? const Color(0xFF0F1419) : Colors.white,
+        color: isDarkMode ? Colors.black : Colors.white,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: isDarkMode ? const Color(0xFF00D9FF) : Colors.black,
+          color: isDarkMode ? Colors.white : Colors.black,
           width: 2,
         ),
         boxShadow: [
           BoxShadow(
-            color: (isDarkMode ? const Color(0xFF00D9FF) : Colors.black).withValues(alpha: 0.1),
+            color: (isDarkMode ? Colors.white : Colors.black).withValues(alpha: 0.1),
             blurRadius: 12,
             offset: const Offset(0, 6),
           ),
@@ -138,15 +138,15 @@ class HighScoresWidget extends StatelessWidget {
       decoration: BoxDecoration(
         color: isBest
             ? (isDarkMode ? Colors.black : Colors.black87)
-            : (isDarkMode ? const Color(0xFF1A1F2E) : Colors.white),
+            : (isDarkMode ? Colors.black : Colors.white),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: isDarkMode ? const Color(0xFF00D9FF) : Colors.black,
+          color: isDarkMode ? Colors.white : Colors.black,
           width: 1.5,
         ),
         boxShadow: [
           BoxShadow(
-            color: (isDarkMode ? const Color(0xFF00D9FF) : Colors.black).withValues(alpha: 0.1),
+            color: (isDarkMode ? Colors.white : Colors.black).withValues(alpha: 0.1),
             blurRadius: 6,
             offset: const Offset(0, 2),
           ),
@@ -161,7 +161,7 @@ class HighScoresWidget extends StatelessWidget {
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               color: isBest ? Colors.black : (isDarkMode ? Colors.grey.shade700 : Colors.grey.shade300),
-              border: Border.all(color: isDarkMode ? const Color(0xFF00D9FF) : Colors.black, width: 2),
+              border: Border.all(color: isDarkMode ? Colors.white : Colors.black, width: 2),
             ),
             child: Center(
               child: Text(
@@ -169,7 +169,7 @@ class HighScoresWidget extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
-                  color: isBest ? Colors.white : (isDarkMode ? const Color(0xFF00D9FF) : Colors.black),
+                  color: isBest ? Colors.white : (isDarkMode ? Colors.white : Colors.black),
                 ),
               ),
             ),
@@ -191,7 +191,7 @@ class HighScoresWidget extends StatelessWidget {
                         fontWeight: FontWeight.bold,
                         color: isBest
                             ? Colors.white
-                            : (isDarkMode ? const Color(0xFF00D9FF) : Colors.black),
+                              : (isDarkMode ? Colors.grey.shade400 : Colors.black),
                       ),
                     ),
                     if (isBest)

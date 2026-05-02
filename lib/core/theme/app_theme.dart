@@ -2,17 +2,17 @@ import 'package:flutter/material.dart';
 
 /// App theme configuration for light and dark modes
 class AppTheme {
-  // Light theme colors
+  // Light theme colors (white background, black foreground)
   static const Color lightPrimary = Colors.black;
   static const Color lightBackground = Colors.white;
-  static const Color lightSurface = Colors.grey;
-  static const Color lightSecondary = Colors.black87;
+  static const Color lightSurface = Colors.white;
+  static const Color lightSecondary = Colors.black;
 
-  // Dark theme colors
-  static const Color darkPrimary = Color.fromARGB(255, 255, 0, 0);
-  static const Color darkBackground = Color.fromARGB(255, 25, 15, 15);
-  static const Color darkSurface = Color.fromARGB(255, 46, 26, 26);
-  static const Color darkSecondary = Color.fromARGB(255, 218, 41, 5);
+  // Dark theme colors (black background, white foreground)
+  static const Color darkPrimary = Colors.white;
+  static const Color darkBackground = Colors.black;
+  static const Color darkSurface = Colors.black;
+  static const Color darkSecondary = Colors.white;
 
   /// Light theme configuration
   static ThemeData lightTheme() {

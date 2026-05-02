@@ -5,11 +5,13 @@ class SchulteGameCell extends StatefulWidget {
   final int number;
   final bool isFound;
   final VoidCallback onTap;
+  final double fontSize; // Dynamic font size
 
   const SchulteGameCell({
     required this.number,
     required this.isFound,
     required this.onTap,
+    this.fontSize = 24,
     super.key,
   });
 
@@ -66,12 +68,12 @@ class _SchulteGameCellState extends State<SchulteGameCell>
                 ? (isDarkMode ? Colors.grey.shade800 : Colors.black87)
                 : (isDarkMode ? Colors.black12 : Colors.white),
             border: Border.all(
-              color: isDarkMode ? const Color(0xFF00D9FF) : Colors.black,
+              color: isDarkMode ? Colors.white : Colors.black,
               width: 2,
             ),
             boxShadow: [
               BoxShadow(
-                color: (isDarkMode ? const Color(0xFF00D9FF) : Colors.black).withValues(alpha: 0.1),
+                color: (isDarkMode ? Colors.white : Colors.black).withValues(alpha: 0.1),
                 blurRadius: 8,
                 offset: const Offset(0, 2),
               ),
@@ -81,11 +83,11 @@ class _SchulteGameCellState extends State<SchulteGameCell>
             child: Text(
               widget.number.toString(),
               style: TextStyle(
-                fontSize: 24,
+                fontSize: widget.fontSize,
                 fontWeight: FontWeight.bold,
                 color: widget.isFound 
                     ? (isDarkMode ? Colors.white70 : Colors.white70)
-                    : (isDarkMode ? const Color(0xFF00D9FF) : Colors.black),
+                    : (isDarkMode ? Colors.white : Colors.black),
                 decoration: widget.isFound ? TextDecoration.lineThrough : null,
               ),
             ),

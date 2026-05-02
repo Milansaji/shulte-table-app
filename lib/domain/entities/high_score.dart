@@ -2,10 +2,12 @@
 class HighScore {
   final int time; // Time in milliseconds
   final DateTime date;
+  final int level; // Game level (1-10)
 
   HighScore({
     required this.time,
     required this.date,
+    this.level = 1,
   });
 
   /// Get formatted time string (MM:SS format)
@@ -26,6 +28,7 @@ class HighScore {
     return {
       'time': time,
       'date': date.toIso8601String(),
+      'level': level,
     };
   }
 
@@ -34,6 +37,7 @@ class HighScore {
     return HighScore(
       time: json['time'] as int,
       date: DateTime.parse(json['date'] as String),
+      level: json['level'] as int? ?? 1,
     );
   }
 }
