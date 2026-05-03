@@ -7,7 +7,6 @@ class LevelSelectorWidget extends StatelessWidget {
 
   const LevelSelectorWidget({super.key, required this.gameProvider});
 
-  static const List<String> _levelLabels = ['Easy', 'Medium', 'Hard'];
   static const List<IconData> _levelIcons = [
     Icons.emoji_events,
     Icons.local_fire_department,
@@ -21,7 +20,6 @@ class LevelSelectorWidget extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        
         _LevelCardRow(
           gameProvider: gameProvider,
           isDarkMode: isDarkMode,
@@ -29,82 +27,6 @@ class LevelSelectorWidget extends StatelessWidget {
           gridSizes: GameConstants.levelTotalNumbers,
         ),
       ],
-    );
-  }
-}
-
-class _LevelInfoHeader extends StatelessWidget {
-  final GameProvider gameProvider;
-  final bool isDarkMode;
-  final List<IconData> levelIcons;
-  final List<String> levelLabels;
-
-  const _LevelInfoHeader({
-    required this.gameProvider,
-    required this.isDarkMode,
-    required this.levelIcons,
-    required this.levelLabels,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(12),
-        color: isDarkMode ? Colors.grey.shade900 : Colors.grey.shade100,
-        border: Border.all(
-          color: isDarkMode ? Colors.white24 : Colors.black12,
-          width: 1,
-        ),
-      ),
-      child: Row(
-        children: [
-          Icon(
-            levelIcons[gameProvider.currentLevel - 1],
-            size: 28,
-            color: isDarkMode ? Colors.white : Colors.black,
-          ),
-          const SizedBox(width: 12),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Level ${gameProvider.currentLevel}',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: isDarkMode ? Colors.white : Colors.black,
-                ),
-              ),
-              Text(
-                '${levelLabels[gameProvider.currentLevel - 1]} - ${gameProvider.game.totalNumbers} numbers',
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w500,
-                  color: isDarkMode ? Colors.grey.shade400 : Colors.black54,
-                ),
-              ),
-            ],
-          ),
-          const Spacer(),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(20),
-              color: isDarkMode ? Colors.white12 : Colors.black12,
-            ),
-            child: Text(
-              '${gameProvider.currentLevel}/${gameProvider.totalLevels}',
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.bold,
-                color: isDarkMode ? Colors.white : Colors.black,
-              ),
-            ),
-          ),
-        ],
-      ),
     );
   }
 }
@@ -131,18 +53,24 @@ class _LevelCardRow extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.center,
           children: List.generate(
             GameConstants.totalLevels,
-            (index) => Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 5),
-              child: _LevelCard(
-                level: index + 1,
-                isSelected: gameProvider.currentLevel == index + 1,
-                icon: levelIcons[index],
-                gridSize: gridSizes[index],
-                isDarkMode: isDarkMode,
-                isDisabled: gameProvider.isGameStarted,
-                onTap: () => gameProvider.setLevel(index + 1),
-              ),
-            ),
+            (index) {
+              final level = index + 1;
+              final unlocked = gameProvider.isLevelUnlocked(level);
+              return Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 5),
+                child: _LevelCard(
+                  level: level,
+                  isSelected: gameProvider.currentLevel == level,
+                  icon: levelIcons[index],
+                  gridSize: gridSizes[index],
+                  isDarkMode: isDarkMode,
+                  isDisabled: gameProvider.isGameStarted || !unlocked,
+                  isLocked: !unlocked,
+                  unlockHint: GameConstants.unlockHint(level),
+                  onTap: () => gameProvider.setLevel(level),
+                ),
+              );
+            },
           ),
         ),
       ),
@@ -157,6 +85,8 @@ class _LevelCard extends StatelessWidget {
   final int gridSize;
   final bool isDarkMode;
   final bool isDisabled;
+  final bool isLocked;
+  final String unlockHint;
   final VoidCallback onTap;
 
   const _LevelCard({
@@ -166,41 +96,55 @@ class _LevelCard extends StatelessWidget {
     required this.gridSize,
     required this.isDarkMode,
     required this.isDisabled,
+    required this.isLocked,
+    required this.unlockHint,
     required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
+    // Locked cards get a muted colour regardless of selection
+    final lockedFg = isDarkMode ? Colors.grey.shade600 : Colors.grey.shade400;
+    final lockedBg = isDarkMode ? Colors.grey.shade900 : Colors.grey.shade200;
+
     return GestureDetector(
-      onTap: isDisabled ? null : onTap,
+      onTap: isDisabled ? (_showLockedToast(context)) : onTap,
       child: AnimatedScale(
         scale: isSelected ? 1.0 : 0.88,
         duration: const Duration(milliseconds: 200),
         child: Container(
           width: 72,
-          height: 80,
+          height: isLocked ? 96 : 80, // a bit taller to fit hint text
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(12),
-            gradient: isSelected
+            gradient: isSelected && !isLocked
                 ? LinearGradient(
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                     colors: [
                       isDarkMode ? Colors.white : Colors.black,
-                      isDarkMode ? Colors.grey.shade800 : Colors.grey.shade800,
+                      isDarkMode
+                          ? Colors.grey.shade800
+                          : Colors.grey.shade800,
                     ],
                   )
                 : null,
-            color: isSelected
-                ? null
-                : (isDarkMode ? Colors.grey.shade900 : Colors.grey.shade100),
+            color: isLocked
+                ? lockedBg
+                : (isSelected
+                    ? null
+                    : (isDarkMode
+                        ? Colors.grey.shade900
+                        : Colors.grey.shade100)),
             border: Border.all(
-              color: isSelected
-                  ? (isDarkMode ? Colors.white : Colors.black)
-                  : (isDarkMode ? Colors.white24 : Colors.black12),
-              width: isSelected ? 2 : 1.5,
+              color: isLocked
+                  ? (isDarkMode ? Colors.grey.shade700 : Colors.grey.shade300)
+                  : (isSelected
+                      ? (isDarkMode ? Colors.white : Colors.black)
+                      : (isDarkMode ? Colors.white24 : Colors.black12)),
+              width: isSelected && !isLocked ? 2 : 1.5,
             ),
-            boxShadow: isSelected
+            boxShadow: isSelected && !isLocked
                 ? [
                     BoxShadow(
                       color: (isDarkMode ? Colors.white : Colors.black)
@@ -211,42 +155,98 @@ class _LevelCard extends StatelessWidget {
                   ]
                 : null,
           ),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                icon,
-                size: 20,
-                color: isSelected
-                    ? (isDarkMode ? Colors.black : Colors.white)
-                    : (isDarkMode ? Colors.white : Colors.black),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                'Lv $level',
-                style: TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.bold,
-                  color: isSelected
-                      ? (isDarkMode ? Colors.black : Colors.white)
-                      : (isDarkMode ? Colors.white : Colors.black),
-                ),
-              ),
-              const SizedBox(height: 2),
-              Text(
-                '$gridSize#',
-                style: TextStyle(
-                  fontSize: 10,
-                  fontWeight: FontWeight.w600,
-                  color: isSelected
-                      ? (isDarkMode ? Colors.black87 : Colors.white70)
-                      : (isDarkMode ? Colors.grey.shade400 : Colors.black54),
-                ),
-              ),
-            ],
-          ),
+          child: isLocked ? _buildLockedContent(lockedFg) : _buildContent(),
         ),
       ),
     );
+  }
+
+  /// Content shown when the level is locked
+  Widget _buildLockedContent(Color fg) {
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Icon(Icons.lock_rounded, size: 20, color: fg),
+        const SizedBox(height: 4),
+        Text(
+          'Lv $level',
+          style: TextStyle(
+            fontSize: 11,
+            fontWeight: FontWeight.bold,
+            color: fg,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 4),
+          child: Text(
+            unlockHint,
+            style: TextStyle(
+              fontSize: 8,
+              fontWeight: FontWeight.w500,
+              color: fg,
+              height: 1.2,
+            ),
+            textAlign: TextAlign.center,
+            maxLines: 2,
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// Normal (unlocked) card content
+  Widget _buildContent() {
+    final fg = isSelected
+        ? (isDarkMode ? Colors.black : Colors.white)
+        : (isDarkMode ? Colors.white : Colors.black);
+    final subFg = isSelected
+        ? (isDarkMode ? Colors.black87 : Colors.white70)
+        : (isDarkMode ? Colors.grey.shade400 : Colors.black54);
+
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Icon(icon, size: 20, color: fg),
+        const SizedBox(height: 4),
+        Text(
+          'Lv $level',
+          style: TextStyle(
+            fontSize: 11,
+            fontWeight: FontWeight.bold,
+            color: fg,
+          ),
+        ),
+        const SizedBox(height: 2),
+        Text(
+          '$gridSize#',
+          style: TextStyle(
+            fontSize: 10,
+            fontWeight: FontWeight.w600,
+            color: subFg,
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// Show a toast when tapping a locked level (returns null for onTap)
+  VoidCallback? _showLockedToast(BuildContext context) {
+    if (!isLocked) return null;
+    return () {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            '🔒 $unlockHint to unlock this level',
+            style: const TextStyle(fontWeight: FontWeight.w600),
+          ),
+          duration: const Duration(seconds: 2),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
+      );
+    };
   }
 }

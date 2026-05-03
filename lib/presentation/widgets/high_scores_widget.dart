@@ -13,7 +13,7 @@ class HighScoresWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-    
+
     if (highScores.isEmpty) {
       return Container(
         padding: const EdgeInsets.all(20),
@@ -26,7 +26,8 @@ class HighScoresWidget extends StatelessWidget {
           ),
           boxShadow: [
             BoxShadow(
-              color: (isDarkMode ? Colors.white : Colors.black).withValues(alpha: 0.1),
+              color: (isDarkMode ? Colors.white : Colors.black)
+                  .withValues(alpha: 0.1),
               blurRadius: 8,
               offset: const Offset(0, 4),
             ),
@@ -72,7 +73,8 @@ class HighScoresWidget extends StatelessWidget {
         ),
         boxShadow: [
           BoxShadow(
-            color: (isDarkMode ? Colors.white : Colors.black).withValues(alpha: 0.1),
+            color: (isDarkMode ? Colors.white : Colors.black)
+                .withValues(alpha: 0.1),
             blurRadius: 12,
             offset: const Offset(0, 6),
           ),
@@ -80,19 +82,20 @@ class HighScoresWidget extends StatelessWidget {
       ),
       child: Column(
         children: [
+          // Header
           Container(
             width: double.infinity,
             padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: isDarkMode ? Colors.black : Colors.black,
-              borderRadius: const BorderRadius.only(
+            decoration: const BoxDecoration(
+              color: Colors.black,
+              borderRadius: BorderRadius.only(
                 topLeft: Radius.circular(15),
                 topRight: Radius.circular(15),
               ),
             ),
-            child: Row(
+            child: const Row(
               mainAxisAlignment: MainAxisAlignment.center,
-              children: const [
+              children: [
                 Icon(Icons.emoji_events, color: Colors.white, size: 24),
                 SizedBox(width: 8),
                 Text(
@@ -102,11 +105,11 @@ class HighScoresWidget extends StatelessWidget {
                     fontWeight: FontWeight.bold,
                     color: Colors.white,
                   ),
-                  textAlign: TextAlign.center,
                 ),
               ],
             ),
           ),
+          // Score list
           Expanded(
             child: SingleChildScrollView(
               child: Column(
@@ -129,9 +132,14 @@ class HighScoresWidget extends StatelessWidget {
   }
 
   /// Build a single score item
-  Widget _buildScoreItem(BuildContext context, int rank, HighScore score, bool isBest) {
+  Widget _buildScoreItem(
+    BuildContext context,
+    int rank,
+    HighScore score,
+    bool isBest,
+  ) {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-    
+
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       padding: const EdgeInsets.all(12),
@@ -146,7 +154,8 @@ class HighScoresWidget extends StatelessWidget {
         ),
         boxShadow: [
           BoxShadow(
-            color: (isDarkMode ? Colors.white : Colors.black).withValues(alpha: 0.1),
+            color: (isDarkMode ? Colors.white : Colors.black)
+                .withValues(alpha: 0.1),
             blurRadius: 6,
             offset: const Offset(0, 2),
           ),
@@ -160,8 +169,15 @@ class HighScoresWidget extends StatelessWidget {
             height: 40,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: isBest ? Colors.black : (isDarkMode ? Colors.grey.shade700 : Colors.grey.shade300),
-              border: Border.all(color: isDarkMode ? Colors.white : Colors.black, width: 2),
+              color: isBest
+                  ? Colors.black
+                  : (isDarkMode
+                      ? Colors.grey.shade700
+                      : Colors.grey.shade300),
+              border: Border.all(
+                color: isDarkMode ? Colors.white : Colors.black,
+                width: 2,
+              ),
             ),
             child: Center(
               child: Text(
@@ -169,7 +185,9 @@ class HighScoresWidget extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
-                  color: isBest ? Colors.white : (isDarkMode ? Colors.white : Colors.black),
+                  color: isBest
+                      ? Colors.white
+                      : (isDarkMode ? Colors.white : Colors.black),
                 ),
               ),
             ),
@@ -184,6 +202,7 @@ class HighScoresWidget extends StatelessWidget {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
+                    // formattedTime now shows e.g. "4.2s" or "1m 3.5s"
                     Text(
                       score.formattedTime,
                       style: TextStyle(
@@ -191,7 +210,9 @@ class HighScoresWidget extends StatelessWidget {
                         fontWeight: FontWeight.bold,
                         color: isBest
                             ? Colors.white
-                              : (isDarkMode ? Colors.grey.shade400 : Colors.black),
+                            : (isDarkMode
+                                ? Colors.grey.shade400
+                                : Colors.black),
                       ),
                     ),
                     if (isBest)
@@ -201,7 +222,7 @@ class HighScoresWidget extends StatelessWidget {
                           vertical: 4,
                         ),
                         decoration: BoxDecoration(
-                          color: isDarkMode ? Colors.black : Colors.black,
+                          color: Colors.black,
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(color: Colors.white, width: 1),
                         ),
@@ -217,13 +238,16 @@ class HighScoresWidget extends StatelessWidget {
                   ],
                 ),
                 const SizedBox(height: 6),
+                // formattedDate now shows e.g. "Jan 3, 2025 · 14:05"
                 Text(
                   score.formattedDate,
                   style: TextStyle(
                     fontSize: 12,
                     color: isBest
                         ? Colors.grey.shade400
-                        : (isDarkMode ? Colors.grey.shade500 : Colors.grey.shade600),
+                        : (isDarkMode
+                            ? Colors.grey.shade500
+                            : Colors.grey.shade600),
                   ),
                 ),
               ],

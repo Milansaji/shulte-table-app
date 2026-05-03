@@ -10,17 +10,27 @@ class HighScore {
     this.level = 1,
   });
 
-  /// Get formatted time string (MM:SS format)
+  /// Get formatted time string - human readable (e.g. "4.2s" or "1m 3.5s")
   String get formattedTime {
-    final seconds = time ~/ 1000;
-    final msec = time % 1000;
-    return '${seconds.toString().padLeft(2, '0')}:${(msec ~/ 10).toString().padLeft(2, '0')}';
+    final totalSeconds = time / 1000;
+    if (totalSeconds < 60) {
+      return '${totalSeconds.toStringAsFixed(1)}s';
+    }
+    final mins = totalSeconds ~/ 60;
+    final secs = (totalSeconds % 60).toStringAsFixed(1);
+    return '${mins}m ${secs}s';
   }
 
-  /// Get formatted date string
+  /// Get formatted date string - friendly format (e.g. "Jan 3, 2025 · 14:05")
   String get formattedDate {
-    return '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')} '
-        '${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
+    const months = [
+      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+    ];
+    final m = months[date.month - 1];
+    final h = date.hour.toString().padLeft(2, '0');
+    final min = date.minute.toString().padLeft(2, '0');
+    return '$m ${date.day}, ${date.year} · $h:$min';
   }
 
   /// Convert to JSON for storage

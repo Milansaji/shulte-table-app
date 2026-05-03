@@ -37,6 +37,7 @@ class _SchulteTableAppState extends State<SchulteTableApp> {
       child: Consumer<ThemeProvider>(
         builder: (context, themeProvider, _) {
           return MaterialApp(
+            debugShowCheckedModeBanner: false,
             title: 'Schulte Master',
             theme: AppTheme.lightTheme(),
             darkTheme: AppTheme.darkTheme(),

@@ -1,7 +1,7 @@
-
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:schulte_table/presentation/widgets/levelsector_widget.dart';
+import 'package:schulte_table/presentation/widgets/new_level_unlocking_overlay.dart';
 import 'package:schulte_table/presentation/widgets/new_record_widget.dart';
 import '../../presentation/providers/game_provider.dart';
 import '../../presentation/providers/theme_provider.dart';
@@ -18,11 +18,21 @@ class SchulteTableScreen extends StatefulWidget {
 
 class _SchulteTableScreenState extends State<SchulteTableScreen> {
   bool _overlayShown = false;
+  bool _unlockOverlayShown = false;
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        automaticallyImplyLeading: false,
+        backgroundColor: Theme.of(context).brightness == Brightness.dark
+            ? Colors.black
+            : Colors.white,
+        foregroundColor: Theme.of(context).brightness == Brightness.dark
+            ? Colors.white
+            : Colors.black,
+        surfaceTintColor: Colors.transparent,
+        elevation: 0,
         title: const Text(
           'Schulte Master',
           style: TextStyle(
@@ -32,35 +42,50 @@ class _SchulteTableScreenState extends State<SchulteTableScreen> {
           ),
         ),
         centerTitle: true,
-        elevation: 2,
         actions: const [_ThemeToggleButton()],
       ),
       body: Consumer<GameProvider>(
         builder: (context, gameProvider, _) {
-
-          // 🔁 RESET overlay when new game starts
+          // 🔁 RESET overlays when a new game starts
           if (!gameProvider.isGameStarted) {
             _overlayShown = false;
+            _unlockOverlayShown = false;
           }
 
-          // 🎉 SHOW overlay
           WidgetsBinding.instance.addPostFrameCallback((_) {
-            if (gameProvider.isGameCompleted &&
-                gameProvider.isNewRecord &&
-                !_overlayShown) {
+            if (!gameProvider.isGameCompleted) return;
 
+            // 🏆 New record overlay
+            if (gameProvider.isNewRecord && !_overlayShown) {
               _overlayShown = true;
-
               NewRecordOverlay.show(
                 context,
                 time: gameProvider.formattedTime,
                 level: gameProvider.currentLevel,
               );
             }
+
+            // 🔓 Level unlock overlay
+            final unlocked = gameProvider.justUnlockedLevel;
+            if (unlocked != null && !_unlockOverlayShown) {
+              _unlockOverlayShown = true;
+              gameProvider.clearJustUnlockedLevel();
+
+              // Slight delay so the new-record overlay (if both fire) appears first
+              Future.delayed(
+                gameProvider.isNewRecord
+                    ? const Duration(milliseconds: 300)
+                    : Duration.zero,
+                () {
+                  if (context.mounted) {
+                    LevelUnlockOverlay.show(context, unlockedLevel: unlocked);
+                  }
+                },
+              );
+            }
           });
 
-          final isDarkMode =
-              Theme.of(context).brightness == Brightness.dark;
+          final isDarkMode = Theme.of(context).brightness == Brightness.dark;
 
           return Container(
             color: isDarkMode ? Colors.black : Colors.white,
@@ -133,12 +158,10 @@ class _ThemeToggleButton extends StatelessWidget {
               size: 24,
             ),
             onPressed: themeProvider.toggleTheme,
-            tooltip:
-                themeProvider.isDarkMode ? 'Light Mode' : 'Dark Mode',
+            tooltip: themeProvider.isDarkMode ? 'Light Mode' : 'Dark Mode',
           ),
         );
       },
     );
   }
 }
-

@@ -22,6 +22,10 @@ class GameProvider extends ChangeNotifier {
   // Tracks whether the last completed game beat the previous best
   bool _isNewRecord = false;
 
+  // Fired once after _saveHighScore detects a newly unlocked level.
+  // The screen listens to this and calls LevelUnlockOverlay.show().
+  int? _justUnlockedLevel;
+
   // ── Getters ──────────────────────────────────────────────────────────────
 
   SchulteGame get game => _game;
@@ -44,6 +48,11 @@ class GameProvider extends ChangeNotifier {
   /// True when the last completed game set a new best time for its level.
   bool get isNewRecord => _isNewRecord;
 
+  /// The level that was just unlocked by the last game completion, or null.
+  /// Consumers should read this value, show the overlay, then call
+  /// [clearJustUnlockedLevel] so it doesn't fire again.
+  int? get justUnlockedLevel => _justUnlockedLevel;
+
   // ── Constructor ───────────────────────────────────────────────────────────
 
   GameProvider() {
@@ -54,6 +63,30 @@ class GameProvider extends ChangeNotifier {
     _timer = null;
     _initializeGame();
     _loadHighScores();
+  }
+
+  // ── Level unlock logic ────────────────────────────────────────────────────
+
+  /// Returns true if [level] is playable based on high score unlock thresholds.
+  ///
+  /// - Level 1 is always unlocked.
+  /// - Level 2 unlocks when the best time on Level 1 is <= 25 000 ms (25 s).
+  /// - Level 3 unlocks when the best time on Level 2 is <= 40 000 ms (40 s).
+  bool isLevelUnlocked(int level) {
+    if (level <= 1) return true;
+
+    final threshold = GameConstants.levelUnlockThresholds[level - 1];
+    if (threshold == null) return true;
+
+    final best = _bestTimeForLevel(level - 1);
+    return best != null && best <= threshold;
+  }
+
+  /// Call this after the UI has consumed [justUnlockedLevel] and shown
+  /// the overlay, so it isn't triggered a second time.
+  void clearJustUnlockedLevel() {
+    _justUnlockedLevel = null;
+    // No notifyListeners needed — this is a one-shot signal.
   }
 
   // ── High scores ───────────────────────────────────────────────────────────
@@ -67,9 +100,7 @@ class GameProvider extends ChangeNotifier {
   int? _bestTimeForLevel(int level) {
     final scores = getHighScoresForLevel(level);
     if (scores.isEmpty) return null;
-    return scores
-        .map((s) => s.time)
-        .reduce((a, b) => a < b ? a : b);
+    return scores.map((s) => s.time).reduce((a, b) => a < b ? a : b);
   }
 
   /// Load high scores from storage.
@@ -137,9 +168,12 @@ class GameProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Set the active level (1-indexed). No-op while a game is running.
+  /// Set the active level (1-indexed). No-op while a game is running or level is locked.
   void setLevel(int level) {
-    if (level >= 1 && level <= GameConstants.totalLevels && !_gameStarted) {
+    if (level >= 1 &&
+        level <= GameConstants.totalLevels &&
+        !_gameStarted &&
+        isLevelUnlocked(level)) {
       _currentLevel = level;
       _stopTimer();
       _stopwatch.reset();
@@ -148,7 +182,7 @@ class GameProvider extends ChangeNotifier {
     }
   }
 
-  /// Advance to the next level.
+  /// Advance to the next level (only if unlocked).
   void nextLevel() {
     if (_currentLevel < GameConstants.totalLevels) {
       setLevel(_currentLevel + 1);
@@ -164,11 +198,17 @@ class GameProvider extends ChangeNotifier {
 
   // ── Persistence ───────────────────────────────────────────────────────────
 
-  /// Save score and determine whether it is a new record.
+  /// Save score, detect new record, and detect newly unlocked levels.
   Future<void> _saveHighScore() async {
     final elapsed = _stopwatch.elapsedMilliseconds;
 
-    // Check before saving so the list still reflects previous bests.
+    // Snapshot unlock state BEFORE saving so we can diff after.
+    final unlockedBefore = List.generate(
+      GameConstants.totalLevels,
+      (i) => isLevelUnlocked(i + 1),
+    );
+
+    // Check for new record before saving.
     final previous = _bestTimeForLevel(_currentLevel);
     _isNewRecord = previous == null || elapsed < previous;
 
@@ -178,7 +218,21 @@ class GameProvider extends ChangeNotifier {
       level: _currentLevel,
     );
     await _highScoreRepository.saveHighScore(highScore);
-    await _loadHighScores(); // refreshes _highScores and calls notifyListeners
+
+    // Reload scores — this updates _highScores so isLevelUnlocked re-evaluates.
+    _highScores = await _highScoreRepository.getHighScores();
+
+    // Diff: find the first level that just became unlocked this save.
+    _justUnlockedLevel = null;
+    for (int i = 0; i < GameConstants.totalLevels; i++) {
+      final level = i + 1;
+      if (!unlockedBefore[i] && isLevelUnlocked(level)) {
+        _justUnlockedLevel = level;
+        break;
+      }
+    }
+
+    notifyListeners(); // triggers UI to check justUnlockedLevel
   }
 
   // ── Timer helpers ─────────────────────────────────────────────────────────
@@ -203,9 +257,13 @@ class GameProvider extends ChangeNotifier {
   }
 
   String _formatTime(int milliseconds) {
-    final seconds = milliseconds ~/ 1000;
-    final msec = milliseconds % 1000;
-    return '${seconds.toString().padLeft(2, '0')}:${(msec ~/ 10).toString().padLeft(2, '0')}';
+    final totalSeconds = milliseconds / 1000;
+    if (totalSeconds < 60) {
+      return '${totalSeconds.toStringAsFixed(1)}s';
+    }
+    final mins = totalSeconds ~/ 60;
+    final secs = (totalSeconds % 60).toStringAsFixed(1);
+    return '${mins}m ${secs}s';
   }
 
   // ── Dispose ───────────────────────────────────────────────────────────────
