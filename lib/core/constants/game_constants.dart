@@ -44,7 +44,7 @@ class GameConstants {
 class MessageConstants {
   MessageConstants._();
 
-  static const String levelLocked = "Locked!";
+  static const String levelLocked = "Challenge Locked!";
   static const String progressReset = "All progress has been reset";
   static const String dailyReminderTitle = "🧠 Time to Train!";
   static const String dailyReminderBody =

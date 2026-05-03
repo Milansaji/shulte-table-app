@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'core/services/notification_service.dart';
+import 'core/services/audio_service.dart';
 import 'core/theme/app_theme.dart';
 import 'presentation/providers/game_provider.dart';
 import 'presentation/providers/theme_provider.dart';
@@ -20,6 +21,7 @@ import 'presentation/screens/daily_challenge_screen.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await NotificationService.instance.initialize();
+  await AudioService.instance.initialize();
   runApp(const SchulteTableApp());
 }
 
@@ -62,11 +64,15 @@ class _SchulteTableAppState extends State<SchulteTableApp> {
         ChangeNotifierProvider<StreakProvider>.value(value: _streakProvider),
         ChangeNotifierProvider<AchievementProvider>.value(value: _achievementProvider),
         ChangeNotifierProvider<DailyChallengeProvider>.value(value: _dailyChallengeProvider),
-        ChangeNotifierProvider(create: (_) {
-          final gp = GameProvider();
-          gp.vibrationEnabled = _settingsProvider.vibrationEnabled;
-          return gp;
-        }),
+        ChangeNotifierProxyProvider<SettingsProvider, GameProvider>(
+          create: (_) => GameProvider(),
+          update: (_, settings, game) {
+            game!.vibrationEnabled = settings.vibrationEnabled;
+            game.soundEnabled = settings.soundEnabled;
+            AudioService.instance.soundEnabled = settings.soundEnabled;
+            return game;
+          },
+        ),
       ],
       child: Consumer<ThemeProvider>(
         builder: (context, themeProvider, _) {

@@ -7,6 +7,7 @@ import '../../domain/usecases/game_usecase.dart';
 import '../../data/repositories/game_repository.dart';
 import '../../data/repositories/high_score_repository.dart';
 import '../../core/constants/game_constants.dart';
+import '../../core/services/audio_service.dart';
 
 /// Provider for game state management.
 ///
@@ -25,6 +26,9 @@ class GameProvider extends ChangeNotifier {
 
   /// Whether vibration feedback is enabled (set from SettingsProvider).
   bool vibrationEnabled = true;
+
+  /// Whether sound feedback is enabled (set from SettingsProvider).
+  bool soundEnabled = true;
 
   // Tracks whether the last completed game beat the previous best.
   bool _isNewRecord = false;
@@ -63,7 +67,7 @@ class GameProvider extends ChangeNotifier {
     final threshold = GameConstants.unlockThresholds[size];
     if (threshold == null) return "";
     final s = threshold / 1000;
-    return "Score < ${s.toStringAsFixed(1)}s on ${size - 1}×${size - 1}";
+    return "Score under ${s.toStringAsFixed(1)}s on ${size - 1}×${size - 1} to access.";
   }
 
   // ── Constructor ───────────────────────────────────────────────────────────
@@ -136,6 +140,7 @@ class GameProvider extends ChangeNotifier {
       if (vibrationEnabled) {
         HapticFeedback.heavyImpact();
       }
+      AudioService.instance.playWrong();
       // Auto-clear wrong tap after a short delay.
       _wrongTapTimer?.cancel();
       _wrongTapTimer = Timer(GameConstants.wrongTapDuration, () {
@@ -149,6 +154,7 @@ class GameProvider extends ChangeNotifier {
       if (vibrationEnabled) {
         HapticFeedback.lightImpact();
       }
+      AudioService.instance.playCorrect();
     }
 
     notifyListeners();
@@ -156,6 +162,7 @@ class GameProvider extends ChangeNotifier {
     if (isGameCompleted) {
       _stopTimer();
       _gameStarted = false;
+      AudioService.instance.playLevelUnlock();
       _saveHighScore();
     }
   }

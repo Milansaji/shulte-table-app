@@ -11,6 +11,7 @@ import '../providers/streak_provider.dart';
 import '../providers/achievement_provider.dart';
 import '../providers/settings_provider.dart';
 import '../widgets/schulte_game_cell.dart';
+import '../../core/services/audio_service.dart';
 
 class DailyChallengeScreen extends StatefulWidget {
   const DailyChallengeScreen({super.key});
@@ -62,6 +63,7 @@ class _DailyChallengeScreenState extends State<DailyChallengeScreen> {
     final vibOn = context.read<SettingsProvider>().vibrationEnabled;
     if (_numbers[index] != _currentNumber) {
       if (vibOn) HapticFeedback.heavyImpact();
+      AudioService.instance.playWrong();
       setState(() { _wrongTapIndex = index; });
       _wrongTapTimer?.cancel();
       _wrongTapTimer = Timer(const Duration(milliseconds: 350), () {
@@ -70,6 +72,7 @@ class _DailyChallengeScreenState extends State<DailyChallengeScreen> {
       return;
     }
     if (vibOn) HapticFeedback.lightImpact();
+    AudioService.instance.playCorrect();
     setState(() {
       _found[index] = true;
       _currentNumber++;
@@ -81,6 +84,7 @@ class _DailyChallengeScreenState extends State<DailyChallengeScreen> {
   void _onComplete() {
     _stopwatch.stop();
     _timer?.cancel();
+    AudioService.instance.playLevelUnlock();
     setState(() { _completed = true; });
     final ms = _stopwatch.elapsedMilliseconds;
     final dc = context.read<DailyChallengeProvider>();
