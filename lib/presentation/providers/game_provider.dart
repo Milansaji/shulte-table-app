@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'dart:async';
 import '../../domain/entities/schulte_game.dart';
 import '../../domain/entities/high_score.dart';
@@ -7,24 +8,26 @@ import '../../data/repositories/game_repository.dart';
 import '../../data/repositories/high_score_repository.dart';
 import '../../core/constants/game_constants.dart';
 
-/// Provider for game state management
+/// Provider for game state management.
+///
+/// Manages the core gameplay loop: grid initialisation, tap handling,
+/// timer, wrong-tap feedback, and high-score persistence.
 class GameProvider extends ChangeNotifier {
   late GameUseCase _gameUseCase;
   late SchulteGame _game;
   late Stopwatch _stopwatch;
   Timer? _timer;
+  Timer? _wrongTapTimer;
   late HighScoreRepository _highScoreRepository;
   late List<HighScore> _highScores;
   bool _gameStarted = false;
-  bool _gamePaused = false;
-  int _currentLevel = 1;
+  int _gridSize = GameConstants.defaultGridSize;
 
-  // Tracks whether the last completed game beat the previous best
+  /// Whether vibration feedback is enabled (set from SettingsProvider).
+  bool vibrationEnabled = true;
+
+  // Tracks whether the last completed game beat the previous best.
   bool _isNewRecord = false;
-
-  // Fired once after _saveHighScore detects a newly unlocked level.
-  // The screen listens to this and calls LevelUnlockOverlay.show().
-  int? _justUnlockedLevel;
 
   // ── Getters ──────────────────────────────────────────────────────────────
 
@@ -34,24 +37,34 @@ class GameProvider extends ChangeNotifier {
   int get foundCount => _game.foundCount;
   List<int> get numbers => _game.numbers;
   List<bool> get found => _game.found;
+  int? get wrongTapIndex => _game.wrongTapIndex;
   bool get isGameCompleted => _game.state == GameConstants.stateCompleted;
   bool get isGameStarted => _gameStarted;
-  bool get isGamePaused => _gamePaused;
   String get formattedTime => _formatTime(_stopwatch.elapsedMilliseconds);
+  int get elapsedMilliseconds => _stopwatch.elapsedMilliseconds;
   List<HighScore> get highScores => _highScores;
-  int get currentLevel => _currentLevel;
-  int get totalLevels => GameConstants.totalLevels;
-
-  /// Returns the current game state string (matches GameConstants state values).
+  int get gridSize => _gridSize;
   String get gameState => _game.state;
-
-  /// True when the last completed game set a new best time for its level.
   bool get isNewRecord => _isNewRecord;
 
-  /// The level that was just unlocked by the last game completion, or null.
-  /// Consumers should read this value, show the overlay, then call
-  /// [clearJustUnlockedLevel] so it doesn't fire again.
-  int? get justUnlockedLevel => _justUnlockedLevel;
+  /// Whether a specific grid size is unlocked based on high scores.
+  bool isGridSizeUnlocked(int size) {
+    if (size == 3) return true;
+    final threshold = GameConstants.unlockThresholds[size];
+    if (threshold == null) return true;
+
+    final bestOnPrevious = bestTimeForGrid(size - 1);
+    return bestOnPrevious != null && bestOnPrevious < threshold;
+  }
+
+  /// Get the condition text to unlock a size (e.g. "Score < 12.0s on 3x3").
+  String getUnlockCondition(int size) {
+    if (size == 3) return "";
+    final threshold = GameConstants.unlockThresholds[size];
+    if (threshold == null) return "";
+    final s = threshold / 1000;
+    return "Score < ${s.toStringAsFixed(1)}s on ${size - 1}×${size - 1}";
+  }
 
   // ── Constructor ───────────────────────────────────────────────────────────
 
@@ -65,62 +78,28 @@ class GameProvider extends ChangeNotifier {
     _loadHighScores();
   }
 
-  // ── Level unlock logic ────────────────────────────────────────────────────
-
-  /// Returns true if [level] is playable based on high score unlock thresholds.
-  ///
-  /// - Level 1 is always unlocked.
-  /// - Level 2 unlocks when the best time on Level 1 is <= 25 000 ms (25 s).
-  /// - Level 3 unlocks when the best time on Level 2 is <= 40 000 ms (40 s).
-  bool isLevelUnlocked(int level) {
-    if (level <= 1) return true;
-
-    final threshold = GameConstants.levelUnlockThresholds[level - 1];
-    if (threshold == null) return true;
-
-    final best = _bestTimeForLevel(level - 1);
-    return best != null && best <= threshold;
-  }
-
-  /// Call this after the UI has consumed [justUnlockedLevel] and shown
-  /// the overlay, so it isn't triggered a second time.
-  void clearJustUnlockedLevel() {
-    _justUnlockedLevel = null;
-    // No notifyListeners needed — this is a one-shot signal.
-  }
-
   // ── High scores ───────────────────────────────────────────────────────────
 
-  /// Get high scores for a specific level.
-  List<HighScore> getHighScoresForLevel(int level) {
-    return _highScores.where((score) => score.level == level).toList();
+  List<HighScore> getHighScoresForGrid(int gridSize) {
+    return _highScores.where((s) => s.gridSize == gridSize).toList();
   }
 
-  /// Returns the current best time (ms) for [level], or null if none exists.
-  int? _bestTimeForLevel(int level) {
-    final scores = getHighScoresForLevel(level);
+  int? bestTimeForGrid(int gridSize) {
+    final scores = getHighScoresForGrid(gridSize);
     if (scores.isEmpty) return null;
     return scores.map((s) => s.time).reduce((a, b) => a < b ? a : b);
   }
 
-  /// Load high scores from storage.
   Future<void> _loadHighScores() async {
-    _highScores = await _highScoreRepository.getHighScores();
+    _highScores = await _highScoreRepository.getAllHighScores();
     notifyListeners();
   }
 
   // ── Game lifecycle ────────────────────────────────────────────────────────
 
-  /// Initialize game state (does NOT start the timer).
   void _initializeGame() {
-    final gridSize = GameConstants.getGridSizeForLevel(_currentLevel);
-    final totalNumbers = GameConstants.getTotalNumbersForLevel(_currentLevel);
-    _game = _gameUseCase.initializeGame(
-      gridSize: gridSize,
-      totalNumbers: totalNumbers,
-    );
+    _game = _gameUseCase.initializeGame(gridSize: _gridSize);
     _gameStarted = false;
-    _gamePaused = false;
     _isNewRecord = false;
     _stopwatch.reset();
   }
@@ -130,14 +109,13 @@ class GameProvider extends ChangeNotifier {
     if (!_gameStarted) {
       _initializeGame();
       _gameStarted = true;
-      _gamePaused = false;
       _stopwatch.start();
       _startTimer();
       notifyListeners();
     }
   }
 
-  /// End the game manually (keeps elapsed time visible).
+  /// End the game manually.
   void endGame() {
     if (_gameStarted) {
       _gameStarted = false;
@@ -148,9 +126,31 @@ class GameProvider extends ChangeNotifier {
 
   /// Handle a cell tap at [index].
   void tapNumber(int index) {
-    if (!_gameStarted || _gamePaused) return;
+    if (!_gameStarted) return;
 
+    final prevState = _game;
     _game = _gameUseCase.handleNumberTap(_game, index);
+
+    // Wrong tap detected.
+    if (_game.wrongTapIndex != null && prevState.wrongTapIndex != _game.wrongTapIndex) {
+      if (vibrationEnabled) {
+        HapticFeedback.heavyImpact();
+      }
+      // Auto-clear wrong tap after a short delay.
+      _wrongTapTimer?.cancel();
+      _wrongTapTimer = Timer(GameConstants.wrongTapDuration, () {
+        _game = _gameUseCase.clearWrongTap(_game);
+        notifyListeners();
+      });
+    }
+
+    // Correct tap — light haptic.
+    if (_game.currentNumber > prevState.currentNumber) {
+      if (vibrationEnabled) {
+        HapticFeedback.lightImpact();
+      }
+    }
+
     notifyListeners();
 
     if (isGameCompleted) {
@@ -160,79 +160,45 @@ class GameProvider extends ChangeNotifier {
     }
   }
 
-  /// Restart the game back to the initial (pre-start) state.
+  /// Restart the game to the initial (pre-start) state.
   void restartGame() {
     _stopTimer();
+    _wrongTapTimer?.cancel();
     _stopwatch.reset();
     _initializeGame();
     notifyListeners();
   }
 
-  /// Set the active level (1-indexed). No-op while a game is running or level is locked.
-  void setLevel(int level) {
-    if (level >= 1 &&
-        level <= GameConstants.totalLevels &&
-        !_gameStarted &&
-        isLevelUnlocked(level)) {
-      _currentLevel = level;
-      _stopTimer();
-      _stopwatch.reset();
-      _initializeGame();
-      notifyListeners();
-    }
-  }
-
-  /// Advance to the next level (only if unlocked).
-  void nextLevel() {
-    if (_currentLevel < GameConstants.totalLevels) {
-      setLevel(_currentLevel + 1);
-    }
-  }
-
-  /// Go back to the previous level.
-  void previousLevel() {
-    if (_currentLevel > 1) {
-      setLevel(_currentLevel - 1);
-    }
+  /// Change grid size. No-op while a game is running or if target size is locked.
+  void setGridSize(int size) {
+    if (_gameStarted) return;
+    if (!GameConstants.availableGridSizes.contains(size)) return;
+    if (!isGridSizeUnlocked(size)) return;
+    _gridSize = size;
+    _stopTimer();
+    _wrongTapTimer?.cancel();
+    _stopwatch.reset();
+    _initializeGame();
+    notifyListeners();
   }
 
   // ── Persistence ───────────────────────────────────────────────────────────
 
-  /// Save score, detect new record, and detect newly unlocked levels.
   Future<void> _saveHighScore() async {
     final elapsed = _stopwatch.elapsedMilliseconds;
 
-    // Snapshot unlock state BEFORE saving so we can diff after.
-    final unlockedBefore = List.generate(
-      GameConstants.totalLevels,
-      (i) => isLevelUnlocked(i + 1),
-    );
-
-    // Check for new record before saving.
-    final previous = _bestTimeForLevel(_currentLevel);
+    final previous = bestTimeForGrid(_gridSize);
     _isNewRecord = previous == null || elapsed < previous;
 
     final highScore = HighScore(
       time: elapsed,
       date: DateTime.now(),
-      level: _currentLevel,
+      gridSize: _gridSize,
     );
     await _highScoreRepository.saveHighScore(highScore);
+    _highScores = await _highScoreRepository.getAllHighScores();
 
-    // Reload scores — this updates _highScores so isLevelUnlocked re-evaluates.
-    _highScores = await _highScoreRepository.getHighScores();
-
-    // Diff: find the first level that just became unlocked this save.
-    _justUnlockedLevel = null;
-    for (int i = 0; i < GameConstants.totalLevels; i++) {
-      final level = i + 1;
-      if (!unlockedBefore[i] && isLevelUnlocked(level)) {
-        _justUnlockedLevel = level;
-        break;
-      }
-    }
-
-    notifyListeners(); // triggers UI to check justUnlockedLevel
+    notifyListeners();
   }
 
   // ── Timer helpers ─────────────────────────────────────────────────────────
@@ -271,6 +237,7 @@ class GameProvider extends ChangeNotifier {
   @override
   void dispose() {
     _stopTimer();
+    _wrongTapTimer?.cancel();
     super.dispose();
   }
 }

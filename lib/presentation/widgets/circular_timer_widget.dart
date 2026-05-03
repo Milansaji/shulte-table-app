@@ -23,7 +23,7 @@ class CircularTimerWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final progress =
         totalNumbers > 0 ? (currentNumber - 1) / totalNumbers : 0.0;
 
@@ -40,7 +40,7 @@ class CircularTimerWidget extends StatelessWidget {
             child: CircularProgressIndicator(
               value: 1.0,
               strokeWidth: 8,
-              color: isDarkMode ? Colors.white12 : Colors.black12,
+              color: isDark ? Colors.white12 : Colors.black12,
             ),
           ),
           // Progress arc
@@ -51,7 +51,7 @@ class CircularTimerWidget extends StatelessWidget {
               value: progress.clamp(0.0, 1.0),
               strokeWidth: 8,
               strokeCap: StrokeCap.round,
-              color: isDarkMode ? Colors.white : Colors.black,
+              color: isDark ? Colors.white : Colors.black,
             ),
           ),
           // Center content
@@ -59,7 +59,7 @@ class CircularTimerWidget extends StatelessWidget {
             time: time,
             currentNumber: currentNumber,
             totalNumbers: totalNumbers,
-            isDarkMode: isDarkMode,
+            isDarkMode: isDark,
             gameProvider: gameProvider,
           ),
         ],
@@ -133,15 +133,13 @@ class _InlineGameControlButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Determine which action / label to show
-    final _ButtonConfig config = _resolveConfig();
+    final config = _resolveConfig();
 
     return GestureDetector(
       onTap: config.onTap,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
-        padding:
-            const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
         decoration: BoxDecoration(
           color: isDarkMode ? Colors.white : Colors.black,
           borderRadius: BorderRadius.circular(20),
@@ -192,11 +190,12 @@ class _InlineGameControlButton extends StatelessWidget {
         onTap: gameProvider.endGame,
       );
     }
-    // Not started — fresh (initial state, 00:00) or paused after manual end
+    // Not started — fresh or manual end
     final bool isFresh =
+        gameProvider.gameState == GameConstants.stateRunning ||
         gameProvider.gameState == GameConstants.stateInitial;
     return _ButtonConfig(
-      icon: isFresh ? Icons.play_arrow_rounded : Icons.refresh_rounded,
+      icon: Icons.play_arrow_rounded,
       label: isFresh ? 'Start' : 'New Game',
       onTap: gameProvider.startGame,
     );

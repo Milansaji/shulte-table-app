@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
 import '../../presentation/providers/game_provider.dart';
 import '../../presentation/widgets/schulte_game_cell.dart';
-import '../../core/constants/game_constants.dart';
 
-/// Displays the Schulte table grid.
+/// Displays the Schulte table grid with dynamic sizing for grid sizes 3–10.
 class GameGridWidget extends StatelessWidget {
   final GameProvider gameProvider;
 
@@ -11,36 +10,24 @@ class GameGridWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final gridSize = gameProvider.game.gridSize;
 
-    // Use GameConstants thresholds: level 1 = 5, level 2 = 8, level 3 = 9
-    final double fontSize = gridSize <= GameConstants.levelGridSizes[0]
-        ? 24.0
-        : gridSize <= GameConstants.levelGridSizes[1]
-            ? 16.0
-            : 12.0;
-    final double spacing = gridSize <= GameConstants.levelGridSizes[0]
-        ? 10.0
-        : gridSize <= GameConstants.levelGridSizes[1]
-            ? 6.0
-            : 4.0;
-    final double padding = gridSize <= GameConstants.levelGridSizes[0]
-        ? 12.0
-        : gridSize <= GameConstants.levelGridSizes[1]
-            ? 8.0
-            : 6.0;
+    // Dynamic sizing based on grid dimension.
+    final double fontSize = _fontSizeForGrid(gridSize);
+    final double spacing = _spacingForGrid(gridSize);
+    final double padding = _paddingForGrid(gridSize);
 
     return Container(
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: isDarkMode ? Colors.white : Colors.black,
+          color: isDark ? Colors.white : Colors.black,
           width: 2,
         ),
         boxShadow: [
           BoxShadow(
-            color: (isDarkMode ? Colors.white : Colors.black)
+            color: (isDark ? Colors.white : Colors.black)
                 .withValues(alpha: 0.1),
             blurRadius: 12,
             offset: const Offset(0, 4),
@@ -48,29 +35,48 @@ class GameGridWidget extends StatelessWidget {
         ],
       ),
       padding: EdgeInsets.all(padding),
-      child: Column(
-        children: [
-          const SizedBox(height: 15),
-          GridView.builder(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: gridSize,
-              crossAxisSpacing: spacing,
-              mainAxisSpacing: spacing,
-            ),
-            itemCount: gameProvider.totalNumbers,
-            itemBuilder: (context, index) {
-              return SchulteGameCell(
-                number: gameProvider.numbers[index],
-                isFound: gameProvider.found[index],
-                onTap: () => gameProvider.tapNumber(index),
-                fontSize: fontSize,
-              );
-            },
-          ),
-        ],
+      child: GridView.builder(
+        shrinkWrap: true,
+        physics: const NeverScrollableScrollPhysics(),
+        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: gridSize,
+          crossAxisSpacing: spacing,
+          mainAxisSpacing: spacing,
+        ),
+        itemCount: gameProvider.totalNumbers,
+        itemBuilder: (context, index) {
+          return SchulteGameCell(
+            number: gameProvider.numbers[index],
+            isFound: gameProvider.found[index],
+            isWrongTap: gameProvider.wrongTapIndex == index,
+            onTap: () => gameProvider.tapNumber(index),
+            fontSize: fontSize,
+          );
+        },
       ),
     );
+  }
+
+  /// Smoothly scales font size from 28 (3×3) down to 10 (10×10).
+  double _fontSizeForGrid(int gridSize) {
+    const double maxFont = 28;
+    const double minFont = 10;
+    const int minGrid = 3;
+    const int maxGrid = 10;
+    final t = (gridSize - minGrid) / (maxGrid - minGrid);
+    return maxFont - t * (maxFont - minFont);
+  }
+
+  double _spacingForGrid(int gridSize) {
+    if (gridSize <= 4) return 10;
+    if (gridSize <= 6) return 7;
+    if (gridSize <= 8) return 5;
+    return 3;
+  }
+
+  double _paddingForGrid(int gridSize) {
+    if (gridSize <= 4) return 12;
+    if (gridSize <= 6) return 8;
+    return 6;
   }
 }

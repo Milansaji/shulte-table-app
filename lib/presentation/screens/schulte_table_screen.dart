@@ -1,13 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:schulte_table/presentation/widgets/levelsector_widget.dart';
-import 'package:schulte_table/presentation/widgets/new_level_unlocking_overlay.dart';
-import 'package:schulte_table/presentation/widgets/new_record_widget.dart';
-import '../../presentation/providers/game_provider.dart';
-import '../../presentation/providers/theme_provider.dart';
-import '../../presentation/widgets/high_scores_widget.dart';
-import '../../presentation/widgets/circular_timer_widget.dart';
-import '../../presentation/widgets/game_grid_widget.dart';
+import '../providers/game_provider.dart';
+import '../providers/theme_provider.dart';
+import '../providers/stats_provider.dart';
+import '../providers/streak_provider.dart';
+import '../providers/achievement_provider.dart';
+import '../providers/daily_challenge_provider.dart';
+import '../widgets/high_scores_widget.dart';
+import '../widgets/circular_timer_widget.dart';
+import '../widgets/game_grid_widget.dart';
+import '../widgets/grid_size_picker.dart';
+import '../widgets/new_record_widget.dart';
 
 class SchulteTableScreen extends StatefulWidget {
   const SchulteTableScreen({super.key});
@@ -17,126 +20,168 @@ class SchulteTableScreen extends StatefulWidget {
 }
 
 class _SchulteTableScreenState extends State<SchulteTableScreen> {
-  bool _overlayShown = false;
-  bool _unlockOverlayShown = false;
+  bool _recordOverlayShown = false;
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        automaticallyImplyLeading: false,
-        backgroundColor: Theme.of(context).brightness == Brightness.dark
-            ? Colors.black
-            : Colors.white,
-        foregroundColor: Theme.of(context).brightness == Brightness.dark
-            ? Colors.white
-            : Colors.black,
-        surfaceTintColor: Colors.transparent,
-        elevation: 0,
-        title: const Text(
-          'Schulte Master',
-          style: TextStyle(
-            fontSize: 24,
-            fontWeight: FontWeight.bold,
-            letterSpacing: 1.5,
+    return PopScope(
+      canPop: !context.watch<GameProvider>().isGameStarted,
+      child: Scaffold(
+        appBar: AppBar(
+          automaticallyImplyLeading: false,
+          backgroundColor: Theme.of(context).brightness == Brightness.dark
+              ? Colors.black
+              : Colors.white,
+          foregroundColor: Theme.of(context).brightness == Brightness.dark
+              ? Colors.white
+              : Colors.black,
+          surfaceTintColor: Colors.transparent,
+          elevation: 0,
+          title: const Text(
+            'Schulte Master',
+            style: TextStyle(
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+              letterSpacing: 1.5,
+            ),
           ),
+          centerTitle: true,
+          actions: [
+            IconButton(
+              icon: const Icon(Icons.bar_chart_rounded, size: 24),
+              onPressed: () => Navigator.pushNamed(context, '/stats'),
+              tooltip: 'Stats',
+            ),
+            IconButton(
+              icon: const Icon(Icons.settings_rounded, size: 24),
+              onPressed: () => Navigator.pushNamed(context, '/settings'),
+              tooltip: 'Settings',
+            ),
+            const SizedBox(width: 4),
+          ],
         ),
-        centerTitle: true,
-        actions: const [_ThemeToggleButton()],
-      ),
-      body: Consumer<GameProvider>(
-        builder: (context, gameProvider, _) {
-          // 🔁 RESET overlays when a new game starts
-          if (!gameProvider.isGameStarted) {
-            _overlayShown = false;
-            _unlockOverlayShown = false;
-          }
-
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            if (!gameProvider.isGameCompleted) return;
-
-            // 🏆 New record overlay
-            if (gameProvider.isNewRecord && !_overlayShown) {
-              _overlayShown = true;
-              NewRecordOverlay.show(
-                context,
-                time: gameProvider.formattedTime,
-                level: gameProvider.currentLevel,
-              );
+        body: Consumer<GameProvider>(
+          builder: (context, gameProvider, _) {
+            // Reset overlay flag when game resets.
+            if (!gameProvider.isGameStarted && !gameProvider.isGameCompleted) {
+              _recordOverlayShown = false;
             }
 
-            // 🔓 Level unlock overlay
-            final unlocked = gameProvider.justUnlockedLevel;
-            if (unlocked != null && !_unlockOverlayShown) {
-              _unlockOverlayShown = true;
-              gameProvider.clearJustUnlockedLevel();
+            // Post-frame: handle overlays and achievement checks.
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (!gameProvider.isGameCompleted) return;
+              if (!mounted) return;
 
-              // Slight delay so the new-record overlay (if both fire) appears first
-              Future.delayed(
-                gameProvider.isNewRecord
-                    ? const Duration(milliseconds: 300)
-                    : Duration.zero,
-                () {
-                  if (context.mounted) {
-                    LevelUnlockOverlay.show(context, unlockedLevel: unlocked);
-                  }
-                },
-              );
-            }
-          });
+              // New record overlay.
+              if (gameProvider.isNewRecord && !_recordOverlayShown) {
+                _recordOverlayShown = true;
+                NewRecordOverlay.show(
+                  context,
+                  time: gameProvider.formattedTime,
+                  gridSize: gameProvider.gridSize,
+                );
+              }
 
-          final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+              // Record stats, streak, and check achievements.
+              _onGameCompleted(context, gameProvider);
+            });
 
-          return Container(
-            color: isDarkMode ? Colors.black : Colors.white,
-            child: SingleChildScrollView(
-              child: Padding(
-                padding: const EdgeInsets.all(20.0),
-                child: Column(
-                  children: [
-                    // Level selector
-                    LevelSelectorWidget(gameProvider: gameProvider),
-                    const SizedBox(height: 10),
+            final isDark = Theme.of(context).brightness == Brightness.dark;
 
-                    // Timer
-                    Center(
-                      child: CircularTimerWidget(
-                        time: gameProvider.formattedTime,
-                        currentNumber: gameProvider.currentNumber,
-                        totalNumbers: gameProvider.totalNumbers,
-                        gameProvider: gameProvider,
+            return Container(
+              color: isDark ? Colors.black : Colors.white,
+              child: SingleChildScrollView(
+                child: Padding(
+                  padding: const EdgeInsets.all(20.0),
+                  child: Column(
+                    children: [
+                      // Daily challenge banner.
+                      _DailyChallengeBanner(),
+                      const SizedBox(height: 12),
+
+                      // Grid size picker.
+                      GridSizePicker(
+                        selectedSize: gameProvider.gridSize,
+                        disabled: gameProvider.isGameStarted,
+                        onSelected: (size) => gameProvider.setGridSize(size),
+                        isUnlocked: (size) =>
+                            gameProvider.isGridSizeUnlocked(size),
+                        getUnlockCondition: (size) =>
+                            gameProvider.getUnlockCondition(size),
                       ),
-                    ),
+                      const SizedBox(height: 16),
 
-                    const SizedBox(height: 20),
-
-                    // Grid
-                    GameGridWidget(gameProvider: gameProvider),
-                    const SizedBox(height: 32),
-
-                    // High scores
-                    SizedBox(
-                      height: 300,
-                      child: HighScoresWidget(
-                        highScores: gameProvider.getHighScoresForLevel(
-                          gameProvider.currentLevel,
+                      // Timer.
+                      Center(
+                        child: CircularTimerWidget(
+                          time: gameProvider.formattedTime,
+                          currentNumber: gameProvider.currentNumber,
+                          totalNumbers: gameProvider.totalNumbers,
+                          gameProvider: gameProvider,
                         ),
                       ),
-                    ),
+                      const SizedBox(height: 20),
 
-                    const SizedBox(height: 16),
-                  ],
+                      // Grid.
+                      GameGridWidget(gameProvider: gameProvider),
+                      const SizedBox(height: 32),
+
+                      // High scores.
+                      SizedBox(
+                        height: 300,
+                        child: HighScoresWidget(
+                          highScores: gameProvider.getHighScoresForGrid(
+                            gameProvider.gridSize,
+                          ),
+                        ),
+                      ),
+
+                      const SizedBox(height: 16),
+                    ],
+                  ),
                 ),
               ),
-            ),
-          );
-        },
+            );
+          },
+        ),
       ),
+    );
+  }
+
+  bool _completionHandled = false;
+
+  void _onGameCompleted(BuildContext context, GameProvider gameProvider) {
+    if (_completionHandled) return;
+    _completionHandled = true;
+
+    // Reset flag when game restarts.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!gameProvider.isGameCompleted) {
+        _completionHandled = false;
+      }
+    });
+
+    // Record stats.
+    final statsProvider = context.read<StatsProvider>();
+    statsProvider.recordGame(
+      gridSize: gameProvider.gridSize,
+      timeMs: gameProvider.elapsedMilliseconds,
+    );
+
+    // Update streak.
+    final streakProvider = context.read<StreakProvider>();
+    streakProvider.recordPlay();
+
+    // Check achievements.
+    final achievementProvider = context.read<AchievementProvider>();
+    achievementProvider.checkAndUnlock(
+      stats: statsProvider.stats,
+      streak: streakProvider.streak,
     );
   }
 }
 
-/// Theme toggle
+/// Theme toggle button.
 class _ThemeToggleButton extends StatelessWidget {
   const _ThemeToggleButton();
 
@@ -144,21 +189,78 @@ class _ThemeToggleButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return Consumer<ThemeProvider>(
       builder: (context, themeProvider, _) {
-        return Container(
-          margin: const EdgeInsets.only(right: 8),
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: Colors.white.withValues(alpha: 0.15),
+        return IconButton(
+          icon: Icon(
+            themeProvider.isDarkMode
+                ? Icons.light_mode_rounded
+                : Icons.dark_mode_rounded,
+            size: 24,
           ),
-          child: IconButton(
-            icon: Icon(
-              themeProvider.isDarkMode
-                  ? Icons.light_mode_rounded
-                  : Icons.dark_mode_rounded,
-              size: 24,
+          onPressed: themeProvider.toggleTheme,
+          tooltip: themeProvider.isDarkMode ? 'Light Mode' : 'Dark Mode',
+        );
+      },
+    );
+  }
+}
+
+/// Banner linking to daily challenge.
+class _DailyChallengeBanner extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Consumer<DailyChallengeProvider>(
+      builder: (context, provider, _) {
+        if (!provider.isInitialized) return const SizedBox.shrink();
+
+        final isDark = Theme.of(context).brightness == Brightness.dark;
+        final completed = provider.isTodayCompleted;
+
+        return GestureDetector(
+          onTap: () => Navigator.pushNamed(context, '/daily'),
+          child: Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            decoration: BoxDecoration(
+              color: completed
+                  ? (isDark
+                        ? Colors.white.withValues(alpha: 0.05)
+                        : Colors.black.withValues(alpha: 0.03))
+                  : (isDark
+                        ? Colors.white.withValues(alpha: 0.1)
+                        : Colors.black.withValues(alpha: 0.06)),
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(
+                color: isDark ? Colors.white24 : Colors.black12,
+              ),
             ),
-            onPressed: themeProvider.toggleTheme,
-            tooltip: themeProvider.isDarkMode ? 'Light Mode' : 'Dark Mode',
+            child: Row(
+              children: [
+                Icon(
+                  completed
+                      ? Icons.check_circle_rounded
+                      : Icons.calendar_today_rounded,
+                  color: isDark ? Colors.white70 : Colors.black54,
+                  size: 20,
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    completed
+                        ? 'Daily Challenge Completed! ✅  (${provider.todayChallenge?.formattedBestTime ?? '--'})'
+                        : '🔥 Daily Challenge Available — Tap to play!',
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: isDark ? Colors.white70 : Colors.black87,
+                    ),
+                  ),
+                ),
+                Icon(
+                  Icons.chevron_right_rounded,
+                  color: isDark ? Colors.white30 : Colors.black26,
+                ),
+              ],
+            ),
           ),
         );
       },

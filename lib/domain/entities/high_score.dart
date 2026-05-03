@@ -1,16 +1,16 @@
-/// Domain Entity representing a high score record
+/// Domain Entity representing a high score record.
 class HighScore {
   final int time; // Time in milliseconds
   final DateTime date;
-  final int level; // Game level (1-10)
+  final int gridSize; // e.g. 5 for a 5×5 grid
 
   HighScore({
     required this.time,
     required this.date,
-    this.level = 1,
+    required this.gridSize,
   });
 
-  /// Get formatted time string - human readable (e.g. "4.2s" or "1m 3.5s")
+  /// Get formatted time string — human readable (e.g. "4.2s" or "1m 3.5s")
   String get formattedTime {
     final totalSeconds = time / 1000;
     if (totalSeconds < 60) {
@@ -21,7 +21,7 @@ class HighScore {
     return '${mins}m ${secs}s';
   }
 
-  /// Get formatted date string - friendly format (e.g. "Jan 3, 2025 · 14:05")
+  /// Get formatted date string — friendly format (e.g. "Jan 3, 2025 · 14:05")
   String get formattedDate {
     const months = [
       'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
@@ -33,21 +33,21 @@ class HighScore {
     return '$m ${date.day}, ${date.year} · $h:$min';
   }
 
-  /// Convert to JSON for storage
+  /// Convert to JSON for storage.
   Map<String, dynamic> toJson() {
     return {
       'time': time,
       'date': date.toIso8601String(),
-      'level': level,
+      'gridSize': gridSize,
     };
   }
 
-  /// Create from JSON
+  /// Create from JSON.
   factory HighScore.fromJson(Map<String, dynamic> json) {
     return HighScore(
       time: json['time'] as int,
       date: DateTime.parse(json['date'] as String),
-      level: json['level'] as int? ?? 1,
+      gridSize: json['gridSize'] as int? ?? 5,
     );
   }
 }

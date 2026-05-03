@@ -1,4 +1,4 @@
-/// Domain Entity representing the game state and data
+/// Domain Entity representing the game state and data.
 class SchulteGame {
   final List<int> numbers;
   final List<bool> found;
@@ -7,6 +7,11 @@ class SchulteGame {
   final int totalNumbers;
   final int elapsedMilliseconds;
   final String state; // 'initial', 'running', 'completed'
+  final bool isDailyChallenge;
+
+  /// Index of the cell that was just tapped incorrectly (or null).
+  /// Used to drive the wrong-tap red-flash animation.
+  final int? wrongTapIndex;
 
   SchulteGame({
     required this.numbers,
@@ -16,15 +21,17 @@ class SchulteGame {
     required this.totalNumbers,
     required this.elapsedMilliseconds,
     required this.state,
+    this.isDailyChallenge = false,
+    this.wrongTapIndex,
   });
 
-  /// Check if the game is completed
+  /// Check if the game is completed.
   bool get isCompleted => currentNumber > totalNumbers;
 
-  /// Get the number of found items
+  /// Get the number of found items.
   int get foundCount => found.where((f) => f).length;
 
-  /// Create a copy with some fields replaced
+  /// Create a copy with some fields replaced.
   SchulteGame copyWith({
     List<int>? numbers,
     List<bool>? found,
@@ -33,6 +40,9 @@ class SchulteGame {
     int? totalNumbers,
     int? elapsedMilliseconds,
     String? state,
+    bool? isDailyChallenge,
+    int? wrongTapIndex,
+    bool clearWrongTap = false,
   }) {
     return SchulteGame(
       numbers: numbers ?? this.numbers,
@@ -42,6 +52,8 @@ class SchulteGame {
       totalNumbers: totalNumbers ?? this.totalNumbers,
       elapsedMilliseconds: elapsedMilliseconds ?? this.elapsedMilliseconds,
       state: state ?? this.state,
+      isDailyChallenge: isDailyChallenge ?? this.isDailyChallenge,
+      wrongTapIndex: clearWrongTap ? null : (wrongTapIndex ?? this.wrongTapIndex),
     );
   }
 }

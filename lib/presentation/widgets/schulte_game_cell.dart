@@ -1,16 +1,18 @@
 import 'package:flutter/material.dart';
 
-/// Widget for a single game cell with modern design
+/// Widget for a single game cell with tap-scale animation and wrong-tap feedback.
 class SchulteGameCell extends StatefulWidget {
   final int number;
   final bool isFound;
+  final bool isWrongTap;
   final VoidCallback onTap;
-  final double fontSize; // Dynamic font size
+  final double fontSize;
 
   const SchulteGameCell({
     required this.number,
     required this.isFound,
     required this.onTap,
+    this.isWrongTap = false,
     this.fontSize = 24,
     super.key,
   });
@@ -21,37 +23,63 @@ class SchulteGameCell extends StatefulWidget {
 
 class _SchulteGameCellState extends State<SchulteGameCell>
     with SingleTickerProviderStateMixin {
-  late AnimationController _animationController;
+  late AnimationController _controller;
   late Animation<double> _scaleAnimation;
 
   @override
   void initState() {
     super.initState();
-    _animationController = AnimationController(
-      duration: const Duration(milliseconds: 300),
+    _controller = AnimationController(
+      duration: const Duration(milliseconds: 200),
       vsync: this,
     );
-    _scaleAnimation = Tween<double>(begin: 1.0, end: 0.95).animate(
-      CurvedAnimation(parent: _animationController, curve: Curves.easeInOut),
+    _scaleAnimation = Tween<double>(begin: 1.0, end: 0.92).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
     );
+  }
+
+  @override
+  void didUpdateWidget(SchulteGameCell old) {
+    super.didUpdateWidget(old);
+    // Trigger a shake-like bounce on wrong tap.
+    if (widget.isWrongTap && !old.isWrongTap) {
+      _controller.forward().then((_) => _controller.reverse());
+    }
   }
 
   @override
   void dispose() {
-    _animationController.dispose();
+    _controller.dispose();
     super.dispose();
   }
 
   void _playTapAnimation() {
-    _animationController.forward().then((_) {
-      _animationController.reverse();
-    });
+    _controller.forward().then((_) => _controller.reverse());
   }
 
   @override
   Widget build(BuildContext context) {
-    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-    
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    // Determine cell colours.
+    Color bgColor;
+    Color textColor;
+    Color borderColor;
+
+    if (widget.isFound) {
+      bgColor = isDark ? Colors.grey.shade800 : Colors.black87;
+      textColor = isDark ? Colors.white70 : Colors.white70;
+      borderColor = isDark ? Colors.white30 : Colors.black26;
+    } else if (widget.isWrongTap) {
+      bgColor = Colors.red.shade700.withValues(alpha: 0.25);
+      textColor = isDark ? Colors.red.shade300 : Colors.red.shade700;
+      borderColor = Colors.red;
+    } else {
+      bgColor = isDark ? Colors.black12 : Colors.white;
+      textColor = isDark ? Colors.white : Colors.black;
+      borderColor = isDark ? Colors.white : Colors.black;
+    }
+
     return GestureDetector(
       onTap: widget.isFound
           ? null
@@ -61,20 +89,17 @@ class _SchulteGameCellState extends State<SchulteGameCell>
             },
       child: ScaleTransition(
         scale: _scaleAnimation,
-        child: Container(
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(12),
-            color: widget.isFound 
-                ? (isDarkMode ? Colors.grey.shade800 : Colors.black87)
-                : (isDarkMode ? Colors.black12 : Colors.white),
-            border: Border.all(
-              color: isDarkMode ? Colors.white : Colors.black,
-              width: 2,
-            ),
+            color: bgColor,
+            border: Border.all(color: borderColor, width: 2),
             boxShadow: [
               BoxShadow(
-                color: (isDarkMode ? Colors.white : Colors.black).withValues(alpha: 0.1),
-                blurRadius: 8,
+                color: (isDark ? Colors.white : Colors.black)
+                    .withValues(alpha: 0.08),
+                blurRadius: 6,
                 offset: const Offset(0, 2),
               ),
             ],
@@ -85,10 +110,9 @@ class _SchulteGameCellState extends State<SchulteGameCell>
               style: TextStyle(
                 fontSize: widget.fontSize,
                 fontWeight: FontWeight.bold,
-                color: widget.isFound 
-                    ? (isDarkMode ? Colors.white70 : Colors.white70)
-                    : (isDarkMode ? Colors.white : Colors.black),
-                decoration: widget.isFound ? TextDecoration.lineThrough : null,
+                color: textColor,
+                decoration:
+                    widget.isFound ? TextDecoration.lineThrough : null,
               ),
             ),
           ),

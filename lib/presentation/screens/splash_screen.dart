@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../providers/settings_provider.dart';
 
-/// Splash screen displayed on app startup
+/// Splash screen displayed on app startup.
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
 
@@ -32,10 +34,15 @@ class _SplashScreenState extends State<SplashScreen>
 
     _animationController.forward();
 
-    // Navigate to main app after 3 seconds
+    // Navigate after a short delay.
     Future.delayed(const Duration(seconds: 3), () {
-      if (mounted) {
+      if (!mounted) return;
+
+      final settings = context.read<SettingsProvider>();
+      if (settings.hasSeenOnboarding) {
         Navigator.of(context).pushReplacementNamed('/home');
+      } else {
+        Navigator.of(context).pushReplacementNamed('/onboarding');
       }
     });
   }
@@ -48,10 +55,10 @@ class _SplashScreenState extends State<SplashScreen>
 
   @override
   Widget build(BuildContext context) {
-    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
-      backgroundColor: isDarkMode ? Colors.black : Colors.white,
+      backgroundColor: isDark ? Colors.black : Colors.white,
       body: Center(
         child: FadeTransition(
           opacity: _fadeAnimation,
@@ -74,7 +81,7 @@ class _SplashScreenState extends State<SplashScreen>
                   style: TextStyle(
                     fontSize: 32,
                     fontWeight: FontWeight.bold,
-                    color: isDarkMode ? Colors.white : Colors.black,
+                    color: isDark ? Colors.white : Colors.black,
                   ),
                   textAlign: TextAlign.center,
                 ),
@@ -84,7 +91,7 @@ class _SplashScreenState extends State<SplashScreen>
                   'Challenge Your Brain',
                   style: TextStyle(
                     fontSize: 16,
-                    color: isDarkMode ? Colors.grey.shade400 : Colors.grey.shade600,
+                    color: isDark ? Colors.grey.shade400 : Colors.grey.shade600,
                     fontWeight: FontWeight.w500,
                   ),
                   textAlign: TextAlign.center,
@@ -97,7 +104,7 @@ class _SplashScreenState extends State<SplashScreen>
                   child: CircularProgressIndicator(
                     strokeWidth: 3,
                     valueColor: AlwaysStoppedAnimation<Color>(
-                      isDarkMode ? Colors.white : Colors.black,
+                      isDark ? Colors.white : Colors.black,
                     ),
                   ),
                 ),

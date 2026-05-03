@@ -1,47 +1,56 @@
+/// Central game configuration — grid sizes, timer, and game states.
 class GameConstants {
-  // Grid sizes
-  static const int defaultGridSize = 5;
-  static const int defaultTotalNumbers = 25;
+  GameConstants._();
 
-  // Timer update interval
+  // ── Grid sizes ──────────────────────────────────────────────────────────
+  /// All selectable grid sizes (NxN).
+  static const List<int> availableGridSizes = [3, 4, 5, 6, 7, 8, 9, 10];
+
+  /// Default grid size shown on first launch.
+  static const int defaultGridSize = 3;
+
+  /// Time thresholds (in ms) on the PREVIOUS grid size required to unlock the NEXT one.
+  /// Map: gridSize -> time needed on (gridSize - 1) to unlock.
+  static const Map<int, int> unlockThresholds = {
+    5: 25000,  // Need < 25s on 4x4 to unlock 5x5
+    6: 45000,  // Need < 45s on 5x5 to unlock 6x6
+    7: 70000,  // Need < 70s on 6x6 to unlock 7x7
+    8: 100000, // Need < 100s on 7x7 to unlock 8x8
+    9: 150000, // Need < 150s on 8x8 to unlock 9x9
+    10: 210000,// Need < 210s on 9x9 to unlock 10x10
+  };
+
+  /// Total cell count for a given grid size.
+  static int totalNumbersForGrid(int gridSize) => gridSize * gridSize;
+
+  // ── Timer ───────────────────────────────────────────────────────────────
   static const Duration timerUpdateInterval = Duration(milliseconds: 100);
 
-  // Game states
+  // ── Game states ─────────────────────────────────────────────────────────
   static const String stateInitial = 'initial';
   static const String stateRunning = 'running';
   static const String stateCompleted = 'completed';
 
-  // Game levels (3 levels with increasing difficulty)
-  static const int totalLevels = 3;
-  static const List<int> levelGridSizes = [5, 8, 9];
-  static const List<int> levelTotalNumbers = [25, 56, 81];
+  // ── Wrong-tap feedback ──────────────────────────────────────────────────
+  /// How long the wrong-tap red flash stays visible.
+  static const Duration wrongTapDuration = Duration(milliseconds: 350);
 
-  // Level unlock thresholds in milliseconds
-  // Level 2 unlocks when Level 1 best time <= 25s
-  // Level 3 unlocks when Level 2 best time <= 60s
-  static const List<int?> levelUnlockThresholds = [
-    null,    // Level 1 is always unlocked
-    25000,   // Level 2: beat Level 1 in 25s
-    60000,   // Level 3: beat Level 2 in 60s
-  ];
+  // ── Daily challenge ─────────────────────────────────────────────────────
+  /// Grid size used for the daily challenge.
+  static const int dailyChallengeGridSize = 5;
+}
 
-  /// Human-readable unlock requirement for a level (e.g. "Beat Lv 1 in 25s")
-  static String unlockHint(int level) {
-    final threshold = levelUnlockThresholds[level - 1];
-    if (threshold == null) return '';
-    final secs = threshold ~/ 1000;
-    return 'Beat Lv ${level - 1} in ${secs}s';
-  }
+/// Centralized UI and notification messages.
+class MessageConstants {
+  MessageConstants._();
 
-  // Get grid size for a specific level (1-indexed)
-  static int getGridSizeForLevel(int level) {
-    if (level < 1 || level > totalLevels) return defaultGridSize;
-    return levelGridSizes[level - 1];
-  }
-
-  // Get total numbers for a specific level (1-indexed)
-  static int getTotalNumbersForLevel(int level) {
-    if (level < 1 || level > totalLevels) return defaultTotalNumbers;
-    return levelTotalNumbers[level - 1];
-  }
+  static const String levelLocked = "Locked!";
+  static const String progressReset = "All progress has been reset";
+  static const String dailyReminderTitle = "🧠 Time to Train!";
+  static const String dailyReminderBody =
+      "Your daily Schulte challenge is waiting. Keep your streak alive!";
+  static const String newRecord = "NEW RECORD";
+  static const String congratulations = "Congratulations!";
+  static const String gameCompleted = "🎉 Completed!";
+  static const String achievementUnlocked = "🏆 Achievement Unlocked!";
 }

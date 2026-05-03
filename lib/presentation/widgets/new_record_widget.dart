@@ -1,7 +1,6 @@
-
 import 'dart:math';
-import 'dart:ui';
 import 'package:flutter/material.dart';
+import '../../core/constants/game_constants.dart';
 
 class NewRecordOverlay {
   static const Duration _autoDismissDelay = Duration(seconds: 4);
@@ -9,7 +8,7 @@ class NewRecordOverlay {
   static void show(
     BuildContext context, {
     required String time,
-    required int level,
+    required int gridSize,
   }) {
     final overlay = Overlay.of(context);
     late OverlayEntry entry;
@@ -17,7 +16,7 @@ class NewRecordOverlay {
     entry = OverlayEntry(
       builder: (_) => _NewRecordOverlayContent(
         time: time,
-        level: level,
+        gridSize: gridSize,
         onDismiss: () => entry.remove(),
       ),
     );
@@ -34,12 +33,12 @@ class NewRecordOverlay {
 
 class _NewRecordOverlayContent extends StatefulWidget {
   final String time;
-  final int level;
+  final int gridSize;
   final VoidCallback onDismiss;
 
   const _NewRecordOverlayContent({
     required this.time,
-    required this.level,
+    required this.gridSize,
     required this.onDismiss,
   });
 
@@ -96,17 +95,17 @@ class _NewRecordOverlayContentState extends State<_NewRecordOverlayContent>
         color: Colors.transparent,
         child: Stack(
           children: [
-            // 🔥 Dim background (theme-based)
+            // Dim background
             AnimatedBuilder(
               animation: _fadeAnim,
               builder: (_, __) => Container(
                 width: size.width,
                 height: size.height,
-                color: Colors.black.withOpacity(0.55 * _fadeAnim.value),
+                color: Colors.black.withValues(alpha: 0.55 * _fadeAnim.value),
               ),
             ),
 
-            // 🎉 Confetti
+            // Confetti
             AnimatedBuilder(
               animation: _particleCtrl,
               builder: (_, __) => CustomPaint(
@@ -118,7 +117,7 @@ class _NewRecordOverlayContentState extends State<_NewRecordOverlayContent>
               ),
             ),
 
-            // 🎯 Card
+            // Card
             Center(
               child: AnimatedBuilder(
                 animation: _cardCtrl,
@@ -128,7 +127,7 @@ class _NewRecordOverlayContentState extends State<_NewRecordOverlayContent>
                 ),
                 child: _RecordCard(
                   time: widget.time,
-                  level: widget.level,
+                  gridSize: widget.gridSize,
                   onDismiss: widget.onDismiss,
                 ),
               ),
@@ -144,12 +143,12 @@ class _NewRecordOverlayContentState extends State<_NewRecordOverlayContent>
 
 class _RecordCard extends StatelessWidget {
   final String time;
-  final int level;
+  final int gridSize;
   final VoidCallback onDismiss;
 
   const _RecordCard({
     required this.time,
-    required this.level,
+    required this.gridSize,
     required this.onDismiss,
   });
 
@@ -160,7 +159,7 @@ class _RecordCard extends StatelessWidget {
 
     final bg = colorScheme.surface;
     final fg = colorScheme.primary;
-    final subtle = theme.textTheme.bodySmall?.color?.withOpacity(0.7)
+    final subtle = theme.textTheme.bodySmall?.color?.withValues(alpha: 0.7)
         ?? (theme.brightness == Brightness.dark
             ? Colors.white70
             : Colors.black54);
@@ -171,10 +170,10 @@ class _RecordCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: bg,
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: fg.withOpacity(0.15)),
+        border: Border.all(color: fg.withValues(alpha: 0.15)),
         boxShadow: [
           BoxShadow(
-            color: fg.withOpacity(0.15),
+            color: fg.withValues(alpha: 0.15),
             blurRadius: 32,
           ),
         ],
@@ -182,14 +181,14 @@ class _RecordCard extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // 🏆 Icon
+          // Trophy icon
           Container(
             width: 72,
             height: 72,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: fg.withOpacity(0.08),
-              border: Border.all(color: fg.withOpacity(0.2)),
+              color: fg.withValues(alpha: 0.08),
+              border: Border.all(color: fg.withValues(alpha: 0.2)),
             ),
             child: Icon(Icons.emoji_events_rounded, size: 36, color: fg),
           ),
@@ -204,7 +203,7 @@ class _RecordCard extends StatelessWidget {
               borderRadius: BorderRadius.circular(20),
             ),
             child: Text(
-              'NEW RECORD',
+              MessageConstants.newRecord,
               style: TextStyle(
                 fontSize: 11,
                 fontWeight: FontWeight.w900,
@@ -217,7 +216,7 @@ class _RecordCard extends StatelessWidget {
           const SizedBox(height: 16),
 
           Text(
-            'Congratulations!',
+            MessageConstants.congratulations,
             style: TextStyle(
               fontSize: 22,
               fontWeight: FontWeight.bold,
@@ -228,11 +227,8 @@ class _RecordCard extends StatelessWidget {
           const SizedBox(height: 8),
 
           Text(
-            'You set the best time\nfor Level $level',
-            style: TextStyle(
-              fontSize: 14,
-              color: subtle,
-            ),
+            'You set the best time\nfor the $gridSize×$gridSize grid',
+            style: TextStyle(fontSize: 14, color: subtle),
             textAlign: TextAlign.center,
           ),
 
@@ -243,9 +239,9 @@ class _RecordCard extends StatelessWidget {
             width: double.infinity,
             padding: const EdgeInsets.symmetric(vertical: 14),
             decoration: BoxDecoration(
-              color: fg.withOpacity(0.06),
+              color: fg.withValues(alpha: 0.06),
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: fg.withOpacity(0.12)),
+              border: Border.all(color: fg.withValues(alpha: 0.12)),
             ),
             child: Column(
               children: [
@@ -332,7 +328,6 @@ class _ConfettiPainter extends CustomPainter {
         rotation: rng.nextDouble() * 2 * pi,
         rotationSpeed: (rng.nextBool() ? 1 : -1) *
             (1 + rng.nextDouble() * 4),
-        colorIndex: rng.nextInt(6),
         isCircle: rng.nextBool(),
       );
     });
@@ -353,7 +348,7 @@ class _ConfettiPainter extends CustomPainter {
       if (y > size.height + 20) continue;
 
       final paint = Paint()
-        ..color = fg.withOpacity(1.0 - t * 0.4);
+        ..color = fg.withValues(alpha: 1.0 - t * 0.4);
 
       canvas.save();
       canvas.translate(x, y);
@@ -386,7 +381,6 @@ class _Particle {
   final double wobbleSpeed;
   final double rotation;
   final double rotationSpeed;
-  final int colorIndex;
   final bool isCircle;
 
   const _Particle({
@@ -398,7 +392,6 @@ class _Particle {
     required this.wobbleSpeed,
     required this.rotation,
     required this.rotationSpeed,
-    required this.colorIndex,
     required this.isCircle,
   });
 }

@@ -1,3 +1,4 @@
 {
-    "cmake.sourceDirectory": "/home/milansaji/projects/schulte_table/linux"
+    "cmake.sourceDirectory": "/home/milansaji/projects/schulte_table/linux",
+    "java.configuration.updateBuildConfiguration": "interactive"
 }

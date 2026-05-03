@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../domain/entities/high_score.dart';
 
-/// Widget to display high scores in a scrollable list
+/// Widget to display high scores in a scrollable list.
 class HighScoresWidget extends StatelessWidget {
   final List<HighScore> highScores;
 
@@ -12,21 +12,21 @@ class HighScoresWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     if (highScores.isEmpty) {
       return Container(
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
-          color: isDarkMode ? Colors.black : Colors.white,
+          color: isDark ? Colors.black : Colors.white,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: isDarkMode ? Colors.white : Colors.black,
+            color: isDark ? Colors.white : Colors.black,
             width: 2,
           ),
           boxShadow: [
             BoxShadow(
-              color: (isDarkMode ? Colors.white : Colors.black)
+              color: (isDark ? Colors.white : Colors.black)
                   .withValues(alpha: 0.1),
               blurRadius: 8,
               offset: const Offset(0, 4),
@@ -38,7 +38,7 @@ class HighScoresWidget extends StatelessWidget {
             Icon(
               Icons.emoji_events_outlined,
               size: 40,
-              color: isDarkMode ? Colors.white : Colors.black,
+              color: isDark ? Colors.white : Colors.black,
             ),
             const SizedBox(height: 12),
             Text(
@@ -46,7 +46,7 @@ class HighScoresWidget extends StatelessWidget {
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
-                color: isDarkMode ? Colors.white : Colors.black,
+                color: isDark ? Colors.white : Colors.black,
               ),
             ),
             const SizedBox(height: 12),
@@ -54,7 +54,7 @@ class HighScoresWidget extends StatelessWidget {
               'No scores yet. Play and set your first record!',
               style: TextStyle(
                 fontSize: 14,
-                color: isDarkMode ? Colors.grey.shade400 : Colors.black87,
+                color: isDark ? Colors.grey.shade400 : Colors.black87,
               ),
               textAlign: TextAlign.center,
             ),
@@ -65,15 +65,15 @@ class HighScoresWidget extends StatelessWidget {
 
     return Container(
       decoration: BoxDecoration(
-        color: isDarkMode ? Colors.black : Colors.white,
+        color: isDark ? Colors.black : Colors.white,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: isDarkMode ? Colors.white : Colors.black,
+          color: isDark ? Colors.white : Colors.black,
           width: 2,
         ),
         boxShadow: [
           BoxShadow(
-            color: (isDarkMode ? Colors.white : Colors.black)
+            color: (isDark ? Colors.white : Colors.black)
                 .withValues(alpha: 0.1),
             blurRadius: 12,
             offset: const Offset(0, 6),
@@ -86,24 +86,25 @@ class HighScoresWidget extends StatelessWidget {
           Container(
             width: double.infinity,
             padding: const EdgeInsets.all(16),
-            decoration: const BoxDecoration(
-              color: Colors.black,
-              borderRadius: BorderRadius.only(
+            decoration: BoxDecoration(
+              color: isDark ? Colors.white : Colors.black,
+              borderRadius: const BorderRadius.only(
                 topLeft: Radius.circular(15),
                 topRight: Radius.circular(15),
               ),
             ),
-            child: const Row(
+            child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(Icons.emoji_events, color: Colors.white, size: 24),
-                SizedBox(width: 8),
+                Icon(Icons.emoji_events,
+                    color: isDark ? Colors.black : Colors.white, size: 24),
+                const SizedBox(width: 8),
                 Text(
                   'High Scores (Top 10)',
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
-                    color: Colors.white,
+                    color: isDark ? Colors.black : Colors.white,
                   ),
                 ),
               ],
@@ -120,7 +121,7 @@ class HighScoresWidget extends StatelessWidget {
                     context,
                     index + 1,
                     highScores[index],
-                    index == 0, // Highlight the best score
+                    index == 0,
                   ),
                 ),
               ),
@@ -131,30 +132,29 @@ class HighScoresWidget extends StatelessWidget {
     );
   }
 
-  /// Build a single score item
   Widget _buildScoreItem(
     BuildContext context,
     int rank,
     HighScore score,
     bool isBest,
   ) {
-    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: isBest
-            ? (isDarkMode ? Colors.black : Colors.black87)
-            : (isDarkMode ? Colors.black : Colors.white),
+            ? (isDark ? Colors.black : Colors.black87)
+            : (isDark ? Colors.black : Colors.white),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: isDarkMode ? Colors.white : Colors.black,
+          color: isDark ? Colors.white : Colors.black,
           width: 1.5,
         ),
         boxShadow: [
           BoxShadow(
-            color: (isDarkMode ? Colors.white : Colors.black)
+            color: (isDark ? Colors.white : Colors.black)
                 .withValues(alpha: 0.1),
             blurRadius: 6,
             offset: const Offset(0, 2),
@@ -163,7 +163,7 @@ class HighScoresWidget extends StatelessWidget {
       ),
       child: Row(
         children: [
-          // Rank Badge
+          // Rank badge
           Container(
             width: 40,
             height: 40,
@@ -171,11 +171,11 @@ class HighScoresWidget extends StatelessWidget {
               shape: BoxShape.circle,
               color: isBest
                   ? Colors.black
-                  : (isDarkMode
+                  : (isDark
                       ? Colors.grey.shade700
                       : Colors.grey.shade300),
               border: Border.all(
-                color: isDarkMode ? Colors.white : Colors.black,
+                color: isDark ? Colors.white : Colors.black,
                 width: 2,
               ),
             ),
@@ -187,14 +187,14 @@ class HighScoresWidget extends StatelessWidget {
                   fontWeight: FontWeight.bold,
                   color: isBest
                       ? Colors.white
-                      : (isDarkMode ? Colors.white : Colors.black),
+                      : (isDark ? Colors.white : Colors.black),
                 ),
               ),
             ),
           ),
           const SizedBox(width: 16),
 
-          // Score Details
+          // Score details
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -202,7 +202,6 @@ class HighScoresWidget extends StatelessWidget {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    // formattedTime now shows e.g. "4.2s" or "1m 3.5s"
                     Text(
                       score.formattedTime,
                       style: TextStyle(
@@ -210,7 +209,7 @@ class HighScoresWidget extends StatelessWidget {
                         fontWeight: FontWeight.bold,
                         color: isBest
                             ? Colors.white
-                            : (isDarkMode
+                            : (isDark
                                 ? Colors.grey.shade400
                                 : Colors.black),
                       ),
@@ -238,14 +237,13 @@ class HighScoresWidget extends StatelessWidget {
                   ],
                 ),
                 const SizedBox(height: 6),
-                // formattedDate now shows e.g. "Jan 3, 2025 · 14:05"
                 Text(
                   score.formattedDate,
                   style: TextStyle(
                     fontSize: 12,
                     color: isBest
                         ? Colors.grey.shade400
-                        : (isDarkMode
+                        : (isDark
                             ? Colors.grey.shade500
                             : Colors.grey.shade600),
                   ),

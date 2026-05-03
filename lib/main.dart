@@ -1,30 +1,55 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'core/services/notification_service.dart';
+import 'core/theme/app_theme.dart';
 import 'presentation/providers/game_provider.dart';
 import 'presentation/providers/theme_provider.dart';
-import 'presentation/screens/schulte_table_screen.dart';
+import 'presentation/providers/settings_provider.dart';
+import 'presentation/providers/stats_provider.dart';
+import 'presentation/providers/streak_provider.dart';
+import 'presentation/providers/achievement_provider.dart';
+import 'presentation/providers/daily_challenge_provider.dart';
 import 'presentation/screens/splash_screen.dart';
-import 'core/theme/app_theme.dart';
+import 'presentation/screens/schulte_table_screen.dart';
+import 'presentation/screens/onboarding_screen.dart';
+import 'presentation/screens/settings_screen.dart';
+import 'presentation/screens/stats_screen.dart';
+import 'presentation/screens/achievements_screen.dart';
+import 'presentation/screens/daily_challenge_screen.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await NotificationService.instance.initialize();
   runApp(const SchulteTableApp());
 }
 
 class SchulteTableApp extends StatefulWidget {
   const SchulteTableApp({super.key});
-
   @override
   State<SchulteTableApp> createState() => _SchulteTableAppState();
 }
 
 class _SchulteTableAppState extends State<SchulteTableApp> {
-  late ThemeProvider _themeProvider;
+  final ThemeProvider _themeProvider = ThemeProvider();
+  final SettingsProvider _settingsProvider = SettingsProvider();
+  final StatsProvider _statsProvider = StatsProvider();
+  final StreakProvider _streakProvider = StreakProvider();
+  final AchievementProvider _achievementProvider = AchievementProvider();
+  final DailyChallengeProvider _dailyChallengeProvider = DailyChallengeProvider();
 
   @override
   void initState() {
     super.initState();
-    _themeProvider = ThemeProvider();
-    _themeProvider.initialize();
+    _initProviders();
+  }
+
+  Future<void> _initProviders() async {
+    await _themeProvider.initialize();
+    await _settingsProvider.initialize();
+    await _statsProvider.initialize();
+    await _streakProvider.initialize();
+    await _achievementProvider.initialize();
+    await _dailyChallengeProvider.initialize();
   }
 
   @override
@@ -32,7 +57,16 @@ class _SchulteTableAppState extends State<SchulteTableApp> {
     return MultiProvider(
       providers: [
         ChangeNotifierProvider<ThemeProvider>.value(value: _themeProvider),
-        ChangeNotifierProvider(create: (_) => GameProvider()),
+        ChangeNotifierProvider<SettingsProvider>.value(value: _settingsProvider),
+        ChangeNotifierProvider<StatsProvider>.value(value: _statsProvider),
+        ChangeNotifierProvider<StreakProvider>.value(value: _streakProvider),
+        ChangeNotifierProvider<AchievementProvider>.value(value: _achievementProvider),
+        ChangeNotifierProvider<DailyChallengeProvider>.value(value: _dailyChallengeProvider),
+        ChangeNotifierProvider(create: (_) {
+          final gp = GameProvider();
+          gp.vibrationEnabled = _settingsProvider.vibrationEnabled;
+          return gp;
+        }),
       ],
       child: Consumer<ThemeProvider>(
         builder: (context, themeProvider, _) {
@@ -45,6 +79,11 @@ class _SchulteTableAppState extends State<SchulteTableApp> {
             home: const SplashScreen(),
             routes: {
               '/home': (context) => const SchulteTableScreen(),
+              '/onboarding': (context) => const OnboardingScreen(),
+              '/settings': (context) => const SettingsScreen(),
+              '/stats': (context) => const StatsScreen(),
+              '/achievements': (context) => const AchievementsScreen(),
+              '/daily': (context) => const DailyChallengeScreen(),
             },
           );
         },
