@@ -11,6 +11,9 @@ import '../widgets/circular_timer_widget.dart';
 import '../widgets/game_grid_widget.dart';
 import '../widgets/grid_size_picker.dart';
 import '../widgets/new_record_widget.dart';
+import 'package:confetti/confetti.dart';
+import '../../core/services/notification_service.dart';
+import '../../core/constants/achievement_definitions.dart';
 
 class SchulteTableScreen extends StatefulWidget {
   const SchulteTableScreen({super.key});
@@ -21,6 +24,19 @@ class SchulteTableScreen extends StatefulWidget {
 
 class _SchulteTableScreenState extends State<SchulteTableScreen> {
   bool _recordOverlayShown = false;
+  late ConfettiController _confettiController;
+
+  @override
+  void initState() {
+    super.initState();
+    _confettiController = ConfettiController(duration: const Duration(seconds: 3));
+  }
+
+  @override
+  void dispose() {
+    _confettiController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -88,10 +104,12 @@ class _SchulteTableScreenState extends State<SchulteTableScreen> {
 
             final isDark = Theme.of(context).brightness == Brightness.dark;
 
-            return Container(
-              color: isDark ? Colors.black : Colors.white,
-              child: SingleChildScrollView(
-                child: Padding(
+            return Stack(
+              children: [
+                Container(
+                  color: isDark ? Colors.black : Colors.white,
+                  child: SingleChildScrollView(
+                    child: Padding(
                   padding: const EdgeInsets.all(20.0),
                   child: Column(
                     children: [
@@ -141,6 +159,20 @@ class _SchulteTableScreenState extends State<SchulteTableScreen> {
                   ),
                 ),
               ),
+            ),
+            Align(
+              alignment: Alignment.topCenter,
+                  child: ConfettiWidget(
+                    confettiController: _confettiController,
+                    blastDirectionality: BlastDirectionality.explosive,
+                    emissionFrequency: 0.05,
+                    numberOfParticles: 20,
+                    maxBlastForce: 100,
+                    minBlastForce: 80,
+                    gravity: 0.1,
+                  ),
+                ),
+              ],
             );
           },
         ),
@@ -150,7 +182,7 @@ class _SchulteTableScreenState extends State<SchulteTableScreen> {
 
   bool _completionHandled = false;
 
-  void _onGameCompleted(BuildContext context, GameProvider gameProvider) {
+  Future<void> _onGameCompleted(BuildContext context, GameProvider gameProvider) async {
     if (_completionHandled) return;
     _completionHandled = true;
 
@@ -170,14 +202,46 @@ class _SchulteTableScreenState extends State<SchulteTableScreen> {
 
     // Update streak.
     final streakProvider = context.read<StreakProvider>();
-    streakProvider.recordPlay();
+    final oldStreak = streakProvider.currentStreak;
+    await streakProvider.recordPlay();
+    final newStreak = streakProvider.currentStreak;
 
     // Check achievements.
     final achievementProvider = context.read<AchievementProvider>();
-    achievementProvider.checkAndUnlock(
+    await achievementProvider.checkAndUnlock(
       stats: statsProvider.stats,
       streak: streakProvider.streak,
     );
+
+    bool shouldPlayConfetti = false;
+
+    if (achievementProvider.justUnlocked.isNotEmpty) {
+      shouldPlayConfetti = true;
+      for (final id in achievementProvider.justUnlocked) {
+        final def = AchievementCatalog.byId(id);
+        if (def != null) {
+          NotificationService.instance.showAchievementNotification(
+            'Achievement Unlocked!',
+            def.title,
+          );
+        }
+      }
+      achievementProvider.clearJustUnlocked();
+    }
+
+    if (newStreak > oldStreak) {
+      shouldPlayConfetti = true;
+      if (newStreak % 3 == 0 || newStreak == 1) { // Notify on milestones or first play
+        NotificationService.instance.showStreakNotification(
+          'Streak Updated!',
+          'You are on a $newStreak day streak! 🔥',
+        );
+      }
+    }
+
+    if (shouldPlayConfetti && mounted) {
+      _confettiController.play();
+    }
   }
 }
 

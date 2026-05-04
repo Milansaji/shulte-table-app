@@ -5,6 +5,7 @@ class SettingsRepository {
   static const String _soundKey = 'setting_sound';
   static const String _vibrationKey = 'setting_vibration';
   static const String _notificationsKey = 'setting_notifications';
+  static const String _notificationTimeKey = 'setting_notification_time';
   static const String _onboardingKey = 'has_seen_onboarding';
 
   Future<bool> getSoundEnabled() async {
@@ -37,6 +38,16 @@ class SettingsRepository {
     await prefs.setBool(_notificationsKey, value);
   }
 
+  Future<String> getNotificationTime() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(_notificationTimeKey) ?? '07:00';
+  }
+
+  Future<void> setNotificationTime(String time) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_notificationTimeKey, time);
+  }
+
   Future<bool> hasSeenOnboarding() async {
     final prefs = await SharedPreferences.getInstance();
     return prefs.getBool(_onboardingKey) ?? false;
@@ -53,6 +64,7 @@ class SettingsRepository {
     await prefs.remove(_soundKey);
     await prefs.remove(_vibrationKey);
     await prefs.remove(_notificationsKey);
+    await prefs.remove(_notificationTimeKey);
     // Note: onboarding flag is NOT reset.
   }
 }

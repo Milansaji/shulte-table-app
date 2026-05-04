@@ -89,23 +89,78 @@ class SettingsScreen extends StatelessWidget {
               const SizedBox(height: 8),
 
               // Notifications
-              _SettingsTile(
+              _NotificationSettingsTile(
                 icon: Icons.notifications_rounded,
-                title: 'Daily Reminder (7:00 AM)',
                 value: settings.notificationsEnabled,
+                time: settings.notificationTime,
                 onChanged: (v) async {
                   if (v) {
                     final granted =
                         await NotificationService.instance.requestPermission();
                     if (!granted) return;
-                    await NotificationService.instance.scheduleDailyReminder();
+                    await NotificationService.instance.scheduleDailyReminder(
+                      settings.notificationTime.hour,
+                      settings.notificationTime.minute,
+                    );
                   } else {
                     await NotificationService.instance.cancelDailyReminder();
                   }
                   settings.setNotificationsEnabled(v);
                 },
+                onTimeTap: () async {
+                  final newTime = await showTimePicker(
+                    context: context,
+                    initialTime: settings.notificationTime,
+                  );
+                  if (newTime != null) {
+                    await settings.setNotificationTime(newTime);
+                    if (settings.notificationsEnabled) {
+                      await NotificationService.instance.scheduleDailyReminder(
+                        newTime.hour,
+                        newTime.minute,
+                      );
+                    }
+                  }
+                },
                 bg: tileBg,
                 fg: fg,
+              ),
+
+              const SizedBox(height: 8),
+
+              // Test Notification Button
+              GestureDetector(
+                onTap: () async {
+                  await NotificationService.instance.showAchievementNotification(
+                    'Test Notification',
+                    'This is a test notification! 🎉',
+                  );
+                },
+                child: Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.blue.withValues(alpha: 0.08),
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(color: Colors.blue.withValues(alpha: 0.2)),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.notification_add_rounded,
+                          color: Colors.blue.shade400, size: 22),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          'Test Notification',
+                          style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.blue.shade400,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               ),
 
               const SizedBox(height: 32),
@@ -311,3 +366,77 @@ class _SettingsTile extends StatelessWidget {
     );
   }
 }
+
+class _NotificationSettingsTile extends StatelessWidget {
+  final IconData icon;
+  final bool value;
+  final TimeOfDay time;
+  final ValueChanged<bool> onChanged;
+  final VoidCallback onTimeTap;
+  final Color bg;
+  final Color fg;
+
+  const _NotificationSettingsTile({
+    required this.icon,
+    required this.value,
+    required this.time,
+    required this.onChanged,
+    required this.onTimeTap,
+    required this.bg,
+    required this.fg,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, color: fg, size: 22),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  'Daily Reminder',
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                    color: fg,
+                  ),
+                ),
+                if (value)
+                  GestureDetector(
+                    onTap: onTimeTap,
+                    child: Padding(
+                      padding: const EdgeInsets.only(top: 2),
+                      child: Text(
+                        'Time: ${time.format(context)} (Tap to edit)',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: fg.withValues(alpha: 0.6),
+                          decoration: TextDecoration.underline,
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          Switch.adaptive(
+            value: value,
+            onChanged: onChanged,
+            activeTrackColor: fg,
+          ),
+        ],
+      ),
+    );
+  }
+}
+

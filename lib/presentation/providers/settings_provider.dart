@@ -8,12 +8,14 @@ class SettingsProvider extends ChangeNotifier {
   bool _soundEnabled = true;
   bool _vibrationEnabled = true;
   bool _notificationsEnabled = false;
+  TimeOfDay _notificationTime = const TimeOfDay(hour: 7, minute: 0);
   bool _hasSeenOnboarding = false;
   bool _isInitialized = false;
 
   bool get soundEnabled => _soundEnabled;
   bool get vibrationEnabled => _vibrationEnabled;
   bool get notificationsEnabled => _notificationsEnabled;
+  TimeOfDay get notificationTime => _notificationTime;
   bool get hasSeenOnboarding => _hasSeenOnboarding;
   bool get isInitialized => _isInitialized;
 
@@ -22,6 +24,16 @@ class SettingsProvider extends ChangeNotifier {
     _soundEnabled = await _repo.getSoundEnabled();
     _vibrationEnabled = await _repo.getVibrationEnabled();
     _notificationsEnabled = await _repo.getNotificationsEnabled();
+    
+    final timeStr = await _repo.getNotificationTime();
+    final parts = timeStr.split(':');
+    if (parts.length == 2) {
+      _notificationTime = TimeOfDay(
+        hour: int.tryParse(parts[0]) ?? 7,
+        minute: int.tryParse(parts[1]) ?? 0,
+      );
+    }
+
     _hasSeenOnboarding = await _repo.hasSeenOnboarding();
     _isInitialized = true;
     notifyListeners();
@@ -45,18 +57,25 @@ class SettingsProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  Future<void> setNotificationTime(TimeOfDay time) async {
+    _notificationTime = time;
+    final timeStr = '${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}';
+    await _repo.setNotificationTime(timeStr);
+    notifyListeners();
+  }
+
   Future<void> markOnboardingSeen() async {
     _hasSeenOnboarding = true;
     await _repo.setOnboardingSeen();
     notifyListeners();
   }
 
-  /// Reset all settings (except onboarding) and all game progress.
   Future<void> resetSettings() async {
     await _repo.resetAll();
     _soundEnabled = true;
     _vibrationEnabled = true;
     _notificationsEnabled = false;
+    _notificationTime = const TimeOfDay(hour: 7, minute: 0);
     notifyListeners();
   }
 }
